@@ -16,7 +16,7 @@ headless startup. Use `--port 8766` if the default port is occupied. The app bin
 only to loopback and rejects cross-origin writes.
 
 The current workspace already has corrected CICIDS2017 data, prepared splits,
-and 54 trained artifacts, including CICIDS baselines and tuned models, real VM
+and 84 trained artifacts, including CICIDS baselines and tuned models, real VM
 completed and prefix models, and clearly marked synthetic fixtures. The four KVM guests
 are provisioned and verified. The startup script starts this project’s existing
 guests if they are shut off, then opens the local dashboard. Runtime data and models are excluded
@@ -254,3 +254,57 @@ Outputs: [final report](docs/FlowLab_Final_Report.docx),
 The original [literature review](docs/IDS_Literature_Review_and_Project_Plan.docx)
 remains available. Full captures, model artifacts and run JSON stay local in
 `data`, `models` and `results`; they are not committed to GitHub.
+
+
+## Context and shared-prefix refinement
+
+The latest implementation adds 1-second and 5-second causal destination context,
+an independent binary gate and attack-type estimator, explicit uncertain results,
+and binary-stage explanations. It is evaluated on 80 labelled VM sessions,
+74 original CICIDS packet windows, 112 fresh live-loss sessions (1,344 paired
+model comparisons), and 256 seeded sensor-loss conditions (3,072 comparisons).
+
+CICIDS-only, lab-only and combined models now use the **same 35-feature packet
+prefix extractor**. This closes the completed-CSV versus early-inference mismatch.
+The original 80-feature completed-CICIDS benchmark remains available separately.
+
+The recommended combined model is `mixed_prefix_context--tabm_hier`, selected
+using validation binary macro F1 with a validation benign block-eligibility
+constraint. This is a recommendation for the measured lab configuration.
+CICIDS-only transfer still performs poorly on several lab cases; those failures
+remain in the dashboard and report. Visible source counts cannot recover
+identities concealed by NAT. Packet statistics do not establish malicious intent.
+
+The new context models observe 35 measurements, including the original 21 flow
+features. Raw addresses, absolute timestamps, scenario names, label provenance
+and dataset identities are excluded from model inputs. Prefixes are matched to
+corrected labels by tuple and start time; ambiguous and truncated records are
+excluded. Successful and attempted DoS/HTTP-guessing records share family labels.
+Public password-guessing support is small: 18 training, 5 validation and 11 test
+prefixes. Source hashes and the exclusions are documented.
+
+Run these commands from the repository root to reproduce. Downloading the three
+PCAP days needs about 30 GB, plus temporary range chunks. The mirror's published
+SHA256 values are checked; this verifies mirror content, not official ownership.
+
+```bash
+.venv/bin/python -m scripts.download_cic_pcaps
+.venv/bin/python -m scripts.prepare_cic_prefix
+.venv/bin/python -m scripts.collect_refined
+.venv/bin/python -m scripts.augment_refined
+.venv/bin/python -m scripts.evaluate_refinement
+.venv/bin/python -m scripts.evaluate_refined_capture_loss
+.venv/bin/python -m scripts.train_shared_prefix
+.venv/bin/python scripts/benchmark_models.py --datasets refined_context cic_prefix_context mixed_prefix_context --suffix _hier --output refinement-performance.json
+.venv/bin/python -m scripts.finalize_refinement_measurements
+```
+
+The live evaluation and final acceptance control the same VM lab and must run
+sequentially. CPU-only dataset preparation, capture-loss analysis and training can
+run independently. Checkpoints refuse to mix results with different model hashes.
+The preparation/training scripts reuse completed matching capture groups.
+
+The updated [report](docs/FlowLab_Final_Report.docx),
+[presentation](docs/FlowLab_Project_Presentation.pptx) and
+[refinement summary](docs/REFINEMENT_SUMMARY.json) contain the measured results.
+The original `STUDY_SUMMARY.json` preserves the earlier baseline study.

@@ -162,3 +162,17 @@ def test_pcap_manifest_rejects_duplicate_capture_across_splits(workspace, tmp_pa
     )
     with pytest.raises(ValueError, match="multiple splits"):
         datasets.prepare_pcaps(manifest)
+
+
+def test_hierarchical_training_persistence_and_binary_explanation(workspace):
+    meta = datasets.prepare_fixture(episodes=12, prefix=10)
+    saved = ml.train(meta["name"], algorithms=["logistic"], study=True, hierarchical=True)[0]
+    bundle = ml.load_model(saved["id"])
+    sample = extract(generate("DoS", count=1), prefix=10)[0]
+    decision = ml.predict(bundle, [sample["features"]], explain=True)[0]
+    assert saved["hierarchical"] and saved["calibrated"]
+    assert 0 <= decision["attack_score"] <= 1
+    assert isinstance(decision["block_eligible"], bool)
+    assert abs(sum(decision["probabilities"].values()) - 1) < 1e-8
+    assert decision["explanation"]["binary_gate"]["method"].endswith("independent binary gate")
+    assert saved["metrics"]["test"]["selective"]["coverage"] <= 1

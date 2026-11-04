@@ -119,6 +119,68 @@ class TemperatureClassifier(ClassifierMixin, BaseEstimator):
         return self.classes_[self.predict_proba(x).argmax(1)]
 
 
+class HierarchicalClassifier(ClassifierMixin, BaseEstimator):
+    """Independent binary gate and attack-only type estimator."""
+
+    def __init__(self, gate, types, classes, attack_classes):
+        self.gate, self.types = gate, types
+        self.classes, self.attack_classes = classes, attack_classes
+        self.classes_ = np.arange(len(classes))
+
+    def predict_proba(self, x):
+        attack = self.gate.predict_proba(x)[:, 1]
+        type_probs = self.types.predict_proba(x)
+        output = np.zeros((len(x), len(self.classes)))
+        output[:, self.classes.index("BENIGN")] = 1 - attack
+        for i, label in enumerate(self.attack_classes):
+            output[:, self.classes.index(label)] = attack * type_probs[:, i]
+        return output
+
+    def predict(self, x):
+        return self.classes_[self.predict_proba(x).argmax(1)]
+
+
+def selective_decision(metadata, probability):
+    classes = metadata["classes"]
+    raw = classes[int(probability.argmax())]
+    attack = 1 - float(probability[classes.index("BENIGN")]) if "BENIGN" in classes else 1.0
+    if not metadata.get("hierarchical"):
+        return {
+            "prediction": raw,
+            "model_prediction": raw,
+            "attack_score": attack,
+            "block_eligible": raw != "BENIGN" and attack >= metadata["threshold"],
+        }
+    candidates = [
+        (label, float(probability[i]) / max(attack, 1e-12))
+        for i, label in enumerate(classes)
+        if label != "BENIGN"
+    ]
+    candidates.sort(key=lambda x: x[1], reverse=True)
+    label, confidence = candidates[0]
+    margin = confidence - (candidates[1][1] if len(candidates) > 1 else 0)
+    if attack < 0.2:
+        prediction, status = "BENIGN", "benign accepted"
+    elif attack < 0.5:
+        prediction, status = "UNCERTAIN", "insufficient binary confidence"
+    elif confidence < 0.7 or margin < 0.15:
+        prediction, status = "ATTACK_UNCERTAIN", "suspected attack; type uncertain"
+    else:
+        prediction, status = label, "attack type accepted"
+    return {
+        "prediction": prediction,
+        "model_prediction": raw,
+        "explanation_target": label if attack >= 0.5 else "BENIGN",
+        "attack_score": attack,
+        "type_candidate": label,
+        "type_confidence": confidence,
+        "type_margin": margin,
+        "decision_status": status,
+        "block_eligible": attack >= metadata["threshold"],
+        "uncertain": prediction in {"UNCERTAIN", "ATTACK_UNCERTAIN"},
+    }
+
+
 def metrics(truth, predicted, labels=None):
     labels = sorted(set(truth) | set(predicted)) if labels is None else labels
     report = classification_report(truth, predicted, labels=labels, output_dict=True, zero_division=0)
@@ -145,7 +207,14 @@ def metrics(truth, predicted, labels=None):
     }
 
 
-def train(dataset="fixture_completed", algorithms=None, progress=lambda _: None, seed=42, study=False):
+def train(
+    dataset="fixture_completed",
+    algorithms=None,
+    progress=lambda _: None,
+    seed=42,
+    study=False,
+    hierarchical=False,
+):
     meta = json.loads((DATA / f"{dataset}.json").read_text())
     path = DATA / f"{dataset}.csv"
     if fingerprint(path) != meta["sha256"]:
@@ -258,6 +327,46 @@ def train(dataset="fixture_completed", algorithms=None, progress=lambda _: None,
             else:
                 pipeline = make_pipeline({})
                 pipeline.fit(x, y, **kwargs)
+        if hierarchical:
+            if "BENIGN" not in encoder.classes_:
+                raise ValueError("Hierarchical training requires BENIGN examples")
+            binary = (frame.loc[train_mask, "label"].to_numpy() != "BENIGN").astype(int)
+            attack_rows = binary == 1
+            type_encoder = LabelEncoder().fit(frame.loc[train_mask, "label"].to_numpy()[attack_rows])
+            gate, types = make_pipeline(selected), make_pipeline(selected)
+
+            def fit_stage(estimator, xx, yy):
+                args = (
+                    {"classifier__sample_weight": compute_sample_weight("balanced", yy)}
+                    if name in {"mlp", "xgboost"}
+                    else {}
+                )
+                with threadpool_limits(limits=4):
+                    estimator.fit(xx, yy, **args)
+                return estimator
+
+            fit_stage(gate, x, binary)
+            fit_stage(
+                types,
+                x.iloc[np.flatnonzero(attack_rows)],
+                type_encoder.transform(frame.loc[train_mask, "label"].to_numpy()[attack_rows]),
+            )
+            raw_pipeline = HierarchicalClassifier(
+                gate, types, encoder.classes_.tolist(), type_encoder.classes_.tolist()
+            )
+            cal_labels = frame.loc[calibration_ids, "label"]
+            calibrated_gate = TemperatureClassifier(gate).fit(
+                numeric.loc[calibration_ids], (cal_labels != "BENIGN").to_numpy().astype(int)
+            )
+            attack_cal = cal_labels.isin(type_encoder.classes_)
+            if attack_cal.sum() < 2:
+                raise ValueError("Attack-type calibration needs held-out attack rows")
+            calibrated_types = TemperatureClassifier(types).fit(
+                numeric.loc[calibration_ids[attack_cal]], type_encoder.transform(cal_labels[attack_cal])
+            )
+            pipeline = HierarchicalClassifier(
+                calibrated_gate, calibrated_types, encoder.classes_.tolist(), type_encoder.classes_.tolist()
+            )
         training_seconds = time.perf_counter() - start
         training_cpu_seconds = time.process_time() - cpu_start
         output = {}
@@ -279,7 +388,7 @@ def train(dataset="fixture_completed", algorithms=None, progress=lambda _: None,
             else []
         )
         threshold = max(0.9, float(np.quantile(benign_scores, 0.99))) if len(benign_scores) else 0.99
-        model_id = f"{dataset}--{name}" + ("_tuned" if study else "")
+        model_id = f"{dataset}--{name}" + ("_hier" if hierarchical else "_tuned" if study else "")
         metadata = {
             "id": model_id,
             "name": MODEL_NAMES[name],
@@ -298,14 +407,20 @@ def train(dataset="fixture_completed", algorithms=None, progress=lambda _: None,
             "training_seconds": training_seconds,
             "dataset_sha256": meta["sha256"],
             "threshold": threshold,
-            "calibrated": study,
+            "calibrated": study or hierarchical,
+            "hierarchical": hierarchical,
+            "type_confidence_threshold": 0.7 if hierarchical else None,
+            "type_margin_threshold": 0.15 if hierarchical else None,
+            "type_temperature": pipeline.types.temperature_ if hierarchical else None,
             "search": searches,
             "selected_parameters": selected,
             "search_policy": "Three candidates per algorithm; group-separated tuning and temperature calibration; test untouched"
             if study
             else "Fixed baseline",
             "calibration_rows": len(calibration_ids) if study else 0,
-            "temperature": pipeline.temperature_ if study else None,
+            "temperature": (pipeline.gate.temperature_ if hierarchical else pipeline.temperature_)
+            if study or hierarchical
+            else None,
             "training_cpu_seconds": training_cpu_seconds,
             "process_peak_rss_mib": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024,
             "rss_note": "Peak for the whole worker process; includes earlier models and data",
@@ -337,6 +452,31 @@ def train(dataset="fixture_completed", algorithms=None, progress=lambda _: None,
                     metadata["metrics"][split]["uncalibrated_multiclass_brier"] = float(
                         np.square(raw_probability - target).sum(1)[known].mean()
                     )
+        if hierarchical:
+            for split, mask in [("validation", valid_mask), ("test", test_mask)]:
+                probs = pipeline.predict_proba(numeric.loc[mask])
+                selective = [selective_decision(metadata, pp) for pp in probs]
+                truth = frame.loc[mask, "label"].to_numpy()
+                accepted = np.array([not r.get("uncertain", False) for r in selective])
+                guessed = np.array([r["prediction"] for r in selective])
+                binary_pred = np.where(
+                    np.array([r["attack_score"] for r in selective]) >= 0.5, "ATTACK", "BENIGN"
+                )
+                metadata["metrics"][split]["binary"] = metrics(
+                    np.where(truth == "BENIGN", "BENIGN", "ATTACK").tolist(), binary_pred.tolist()
+                )
+                metadata["metrics"][split]["selective"] = {
+                    "coverage": float(accepted.mean()),
+                    "accepted_accuracy": float((guessed[accepted] == truth[accepted]).mean())
+                    if accepted.any()
+                    else None,
+                    "uncertain_rows": int((~accepted).sum()),
+                    "blocking_false_positive_rate": float(
+                        np.mean([r["block_eligible"] for r, t in zip(selective, truth) if t == "BENIGN"])
+                    )
+                    if (truth == "BENIGN").any()
+                    else None,
+                }
         bundle = {"pipeline": pipeline, "encoder": encoder, "metadata": metadata}
         temporary = MODELS / f"{model_id}.joblib.tmp"
         joblib.dump(bundle, temporary, compress=3)
@@ -374,7 +514,7 @@ def predict(bundle, records, explain=False):
         attack_score = 1 - float(probability[classes.index("BENIGN")]) if "BENIGN" in classes else 1.0
         output.append(
             {
-                "prediction": classes[cls],
+                **selective_decision(metadata, probability),
                 "confidence": float(probability[cls]),
                 "attack_score": attack_score,
                 "inference_ms": elapsed,
@@ -383,10 +523,24 @@ def predict(bundle, records, explain=False):
                 "calibrated": metadata.get("calibrated", False),
             }
         )
+    for item, probability in zip(output, probabilities):
+        if metadata.get("hierarchical"):
+            item["confidence"] = (
+                item["attack_score"]
+                if item.get("uncertain")
+                else float(probability[classes.index(item["prediction"])])
+            )
+            item["confidence_kind"] = (
+                "Attack probability; type unaccepted"
+                if item.get("uncertain")
+                else "Joint accepted-class probability"
+            )
     if explain:
         for i in range(min(len(records), 20)):
             explain_start = time.perf_counter()
-            output[i]["explanation"] = explain_one(bundle, x.iloc[[i]], output[i]["prediction"])
+            output[i]["explanation"] = explain_one(
+                bundle, x.iloc[[i]], output[i].get("explanation_target", output[i]["prediction"])
+            )
             output[i]["explanation"]["elapsed_ms"] = (time.perf_counter() - explain_start) * 1000
     return output
 
@@ -418,8 +572,29 @@ def explain_one(bundle, x, predicted):
     except Exception:
         pass  # Exact measured sensitivity remains available for unsupported SHAP versions.
     ranking = np.argsort(-np.abs(values))[:7]
+    binary_explanation = None
+    if meta.get("hierarchical"):
+        gate = pipeline.gate
+        attack_probability = float(gate.predict_proba(x)[0, 1])
+        deltas = attack_probability - gate.predict_proba(variants)[:, 1]
+        top = np.argsort(-np.abs(deltas))[:7]
+        binary_explanation = {
+            "method": "Median replacement sensitivity on independent binary gate",
+            "attack_probability": attack_probability,
+            "features": [
+                {
+                    "feature": meta["features"][j],
+                    "value": float(x.iloc[0, j]) if pd.notna(x.iloc[0, j]) else None,
+                    "reference": float(meta["background"][meta["features"][j]]),
+                    "contribution": float(deltas[j]),
+                }
+                for j in top
+            ],
+        }
     return {
+        "binary_gate": binary_explanation,
         "method": method,
+        "target_class": predicted,
         "unit": unit,
         "note": "Explains model behavior, not attack causation. Correlated features can share evidence.",
         "features": [

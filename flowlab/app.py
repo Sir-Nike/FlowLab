@@ -88,7 +88,7 @@ def submit(kind, fn, *args):
 class ScenarioRequest(BaseModel):
     source: Literal["fixture", "capture", "live"] = "fixture"
     model_id: str
-    scenario: Literal["BENIGN", "DoS", "DDoS", "PortScan", "BruteForce"] = "BENIGN"
+    scenario: Literal["BENIGN", "DoS", "DDoS", "PortScan", "BruteForce", "BenignBurst", "HTTPDoS"] = "BENIGN"
     src: str = "192.168.56.11"
     dst: str = "192.168.56.12"
     loss_rate: float = Field(default=0, ge=0, le=0.1, allow_inf_nan=False)
@@ -96,6 +96,7 @@ class ScenarioRequest(BaseModel):
     seed: int = Field(default=42, ge=0, le=1000000)
     capture_id: str | None = None
     enforce: bool = False
+    source_count: int = Field(default=3, ge=1, le=3)
     duration: int = Field(default=8, ge=1, le=30)
     rate: int = Field(default=100, ge=1, le=500)
 
@@ -104,7 +105,9 @@ class ScenarioRequest(BaseModel):
         ips = {p["ip"] for p in PEERS}
         if self.src not in ips or self.dst not in ips or self.src == self.dst:
             raise ValueError("Choose two different lab peers")
-        if self.scenario == "DDoS" and self.source == "fixture":
+        if self.scenario == "DDoS" and self.source_count < 2:
+            raise ValueError("DDoS requires at least two source peers")
+        if self.scenario in {"DDoS", "BenignBurst", "HTTPDoS"} and self.source == "fixture":
             raise ValueError("DDoS requires real VM traffic or a recorded capture")
         if self.source == "capture" and not self.capture_id:
             raise ValueError("Choose an imported capture")
@@ -147,6 +150,31 @@ def status():
         ],
         "live_runs": store.listing("live_run", 8),
     }
+
+
+@app.get("/api/refinement")
+def refinement():
+    from .config import RESULTS
+
+    output = {}
+    for key, filename in [
+        ("live", "refinement-live.json"),
+        ("summary", "REFINEMENT_SUMMARY.json"),
+        ("complete", "refinement-ready.json"),
+    ]:
+        path = RESULTS / filename
+        output[key] = json.loads(path.read_text()) if path.exists() else None
+    return output
+
+
+@app.get("/api/refinement/export")
+def refinement_export():
+    from .config import RESULTS
+
+    path = RESULTS / "refinement-live.json"
+    if not path.exists():
+        raise HTTPException(404, "Refinement results are not ready")
+    return FileResponse(path, filename=path.name)
 
 
 @app.get("/api/research")

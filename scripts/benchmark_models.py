@@ -45,13 +45,24 @@ def worker(model_id):
 
 
 def main():
-    if len(sys.argv) > 1:
+    if len(sys.argv) > 1 and not sys.argv[1].startswith("--"):
         print(json.dumps(worker(sys.argv[1])))
         return
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--datasets", nargs="+", default=["cicids2017", "extended_prefix10"])
+    parser.add_argument("--suffix", default="_tuned")
+    parser.add_argument("--wait-for")
+    parser.add_argument("--output", default="model-performance.json")
+    args = parser.parse_args()
+    if args.wait_for:
+        while not (RESULTS / args.wait_for).exists():
+            time.sleep(5)
     output = []
-    for dataset in ["cicids2017", "extended_prefix10"]:
+    for dataset in args.datasets:
         for name in MODEL_NAMES:
-            model_id = f"{dataset}--{name}_tuned"
+            model_id = f"{dataset}--{name}{args.suffix}"
             while not (MODELS / f"{model_id}.json").exists():
                 time.sleep(5)
             print("Benchmark", model_id, flush=True)
@@ -59,7 +70,7 @@ def main():
                 [sys.executable, __file__, model_id], capture_output=True, text=True, check=True
             )
             output.append(json.loads(result.stdout))
-            (RESULTS / "model-performance.json").write_text(json.dumps(output, indent=2))
+            (RESULTS / args.output).write_text(json.dumps(output, indent=2))
 
 
 if __name__ == "__main__":

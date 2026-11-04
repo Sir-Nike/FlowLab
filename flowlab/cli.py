@@ -23,8 +23,10 @@ def main():
     pcaps.add_argument("manifest")
     pcaps.add_argument("--name", default="pcap_training")
     pcaps.add_argument("--prefix", type=int)
+    pcaps.add_argument("--context", action="store_true")
     training = commands.add_parser("train")
     training.add_argument("dataset")
+    training.add_argument("--hierarchical", action="store_true")
     training.add_argument(
         "--study",
         action="store_true",
@@ -82,11 +84,13 @@ def main():
     elif args.command == "prepare-pcaps":
         from .datasets import prepare_pcaps
 
-        print(json.dumps(prepare_pcaps(args.manifest, args.name, args.prefix), indent=2))
+        print(
+            json.dumps(prepare_pcaps(args.manifest, args.name, args.prefix, context=args.context), indent=2)
+        )
     elif args.command == "train":
         from .ml import train
 
-        train(args.dataset, args.models, progress=print, study=args.study)
+        train(args.dataset, args.models, progress=print, study=args.study, hierarchical=args.hierarchical)
     elif args.command == "experiment":
         from .experiments import matrix
         from .ml import MODEL_NAMES

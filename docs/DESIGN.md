@@ -61,3 +61,33 @@ differences between randomly generated traffic. Conditional emitted-flow recall
 is named explicitly; capture-loss experiments separately retain end-to-end
 coverage measurements. Independent-process benchmarks distinguish warm single
 prediction latency from batch throughput and whole-process peak memory.
+
+
+## Causal contextual prefix contract
+
+`flowlab-context-v2` adds fourteen measurements to the original 21 inputs.
+`flowlab/context.py` maintains one- and five-second destination windows, with
+source and connection cardinalities, rates, source share, SYN fraction and the
+target outbound/inbound packet ratio. Windows are (decision time - width,
+decision time]. Expired flows are processed before the next packet is inserted.
+Counters provide the same measurements in batch extraction and online inference;
+future packets cannot mutate an emitted prefix. Capacity overruns fail explicitly.
+
+Original CICIDS PCAPNG blocks are sliced without changing Ethernet packet bytes.
+Prefixes are matched uniquely to corrected flow tuples and start times within
+five milliseconds. Left/right truncations and cross-split original identities
+are excluded. Family mapping includes attempted and successful DoS and HTTP
+password guessing; malicious attempt does not imply successful compromise.
+Raw label provenance is retained outside predictive inputs. The same prefix
+contract is used for CICIDS-only, lab-only and domain-balanced combined models.
+
+Hierarchical models fit a binary gate and an attack-only type classifier using
+the flat classifier's selected settings. Each stage receives temperature scaling
+on a separate validation subset. Uncertainty and block eligibility are separate:
+weak binary scores do not block; strong binary attacks may block even when type
+is unaccepted. Explanations separately measure gate and type sensitivity.
+
+Live inference batches each poll's emitted prefixes for estimator efficiency;
+each record retains the context that existed at its own emission time. Final
+acceptance tests ordinary and burst benign traffic before distributed load.
+No scenario labels, source-count selections or capture labels enter inference.

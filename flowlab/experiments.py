@@ -8,6 +8,7 @@ from .config import DATA
 from .fixtures import generate, write_pcap
 from .ml import load_model, metrics, predict
 from .packets import SCHEMA, FlowMeter, apply_loss, extract, read_pcap
+from .context import SCHEMA as CONTEXT_SCHEMA, extract_context
 
 
 def identify_originals(packets):
@@ -42,7 +43,7 @@ def analyze(
 ):
     bundle = load_model(model_id)
     meta = bundle["metadata"]
-    if meta["schema"] != SCHEMA:
+    if meta["schema"] not in {SCHEMA, CONTEXT_SCHEMA}:
         raise ValueError(
             "This is a CSV benchmark model. Select a FlowLab packet model for packet experiments."
         )
@@ -50,7 +51,9 @@ def analyze(
     origins = {p.origin for p in packets}
     kept = apply_loss(packets, rate, kind, seed)
     start = perf_counter()
-    flows = extract(kept, prefix=meta.get("prefix"))
+    flows = (extract_context if meta["schema"] == CONTEXT_SCHEMA else extract)(
+        kept, prefix=meta.get("prefix")
+    )
     predictions = predict(bundle, [f["features"] for f in flows], explain=False) if flows else []
     processing_ms = (perf_counter() - start) * 1000
     rows = []
@@ -59,7 +62,8 @@ def analyze(
             decision["explanation"] = predict(bundle, [flow["features"]], explain=True)[0]["explanation"]
         policy = (
             "would_block"
-            if decision["prediction"] != "BENIGN" and decision["attack_score"] >= meta["threshold"]
+            if decision["prediction"] != "BENIGN"
+            and decision.get("block_eligible", decision["attack_score"] >= meta["threshold"])
             else ("allow" if decision["prediction"] == "BENIGN" else "alert")
         )
         rows.append(
@@ -92,7 +96,7 @@ def analyze(
         "flows_invisible": len(origins - visible),
         "processing_ms": processing_ms,
         "observation": meta["observation"],
-        "schema": SCHEMA,
+        "schema": meta["schema"],
         "conditional": metrics([label] * len(rows), [r["prediction"] for r in rows])
         if label and rows
         else None,

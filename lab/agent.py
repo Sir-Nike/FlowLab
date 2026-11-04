@@ -160,7 +160,7 @@ def traffic(target, scenario, duration, rate, seed=42):
                         url += "?size=" + str(rng.choice([64, 512, 1400, 4096]))
                         req = urllib.request.Request(url)
                     urllib.request.build_opener(urllib.request.ProxyHandler({})).open(req, timeout=0.5).read()
-                    if scenario == "BENIGN" and i % 3 == 0:
+                    if scenario in {"BENIGN", "BenignBurst"} and i % 3 == 0:
                         sock.sendto(b"benign:" + b"normal data" * 20, (target, 8081))
             except (OSError, urllib.error.URLError):
                 pass
@@ -354,7 +354,7 @@ class Agent(BaseHTTPRequestHandler):
                 if (
                     target not in LAB_IPS
                     or target == SELF
-                    or scenario not in ["BENIGN", "DoS", "PortScan", "BruteForce"]
+                    or scenario not in ["BENIGN", "DoS", "PortScan", "BruteForce", "BenignBurst", "HTTPDoS"]
                     or not 1 <= duration <= 30
                     or not 1 <= rate <= 500
                 ):

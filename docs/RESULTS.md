@@ -166,3 +166,39 @@ calibration, failed transfer results and limits. See [the report](FlowLab_Final_
 [presentation](FlowLab_Project_Presentation.pptx) and [summary](STUDY_SUMMARY.json).
 Raw evidence remains in local `results/cic-transfer.json`, `live-study.json`,
 `model-performance.json`, `extended-acceptance.json` and the capture manifests.
+
+
+## Context refinement completed
+
+The refinement adds 80 labelled VM captures, 74 selected original
+CICIDS windows, 112 live-loss sessions and
+1344 paired live predictions sets. The sensor-loss matrix
+contains 256 conditions and 3072
+paired model evaluations, counting invisible original flows as misses.
+
+| Model | Flow-only held-out F1 | Context flat F1 | Context hierarchical F1 | CIC-only F1 on lab | Combined F1 on lab |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| logistic | 0.7848 | 0.9988 | 0.9988 | 0.2981 | 0.8886 |
+| rf | 0.8098 | 0.9985 | 0.9986 | 0.3024 | 0.9985 |
+| xgboost | 0.8225 | 0.9986 | 0.9937 | 0.2776 | 0.9986 |
+| extra | 0.8222 | 0.9988 | 0.9985 | 0.3009 | 0.9986 |
+| mlp | 0.8235 | 0.9987 | 0.9992 | 0.3010 | 0.9989 |
+| tabm | 0.8058 | 0.9989 | 0.9990 | 0.2735 | 0.9989 |
+
+Scores pool the same held-out lab records, average only truth-supported classes,
+and count uncertainty as error. Accepted accuracy must be read with coverage.
+The high contextual scores are specific to this controlled corpus and may reflect
+regular traffic mixtures; they do not prove generalization to arbitrary mixtures.
+
+The selected combined TabM model was chosen on validation binary metrics.
+Final acceptance blocked no connections for ordinary, single-source burst or
+three-source burst benign traffic. Three-source DDoS installed 24 connection
+rules, with 545 delivered UDP datagrams and 587 input-firewall drops among
+1,132 destination observations. A CICIDS-only prefix model was exercised live
+without enforcement; the schema matches even when detection transfer fails.
+
+CIC-only training still transfers poorly to these lab sessions. Public capture
+NAT hides distinct DDoS source identities. The revised report and 12-slide deck
+retain this failure, rare-family support, calibration policy and uncertainty.
+Full raw evidence stays local; `REFINEMENT_SUMMARY.json` supplies compact scores,
+dataset hashes, model hashes and acceptance counters.

@@ -61,7 +61,7 @@ def save_dataset(name, frame, metadata):
         rows=len(frame),
         sha256=fingerprint(path),
         counts=pd.crosstab(frame.label, frame.split).to_dict(),
-        split_policy="GroupShuffleSplit 60/20/20 before preprocessing",
+        split_policy=metadata.get("split_policy", "GroupShuffleSplit 60/20/20 before preprocessing"),
         warnings=metadata.get("warnings", []),
     )
     (DATA / f"{name}.json").write_text(json.dumps(metadata, indent=2))
@@ -161,7 +161,9 @@ def prepare_fixture(seed=42, episodes=24, prefix=None, augment=False):
     )
 
 
-def prepare_pcaps(manifest_path, name="pcap_training", prefix=None):
+def prepare_pcaps(manifest_path, name="pcap_training", prefix=None, context=False):
+    from .context import extract_context, SCHEMA as CONTEXT_SCHEMA, ALL_FEATURES
+
     manifest_path = Path(manifest_path).resolve()
     manifest = json.loads(manifest_path.read_text())
     rows, hashes = [], {}
@@ -172,7 +174,7 @@ def prepare_pcaps(manifest_path, name="pcap_training", prefix=None):
         if item["split"] not in {"train", "validation", "test"}:
             raise ValueError("Capture split must be train, validation or test")
         packets, _ = read_pcap(path)
-        flows = extract(packets, prefix=prefix)
+        flows = extract_context(packets, prefix=prefix) if context else extract(packets, prefix=prefix)
         for flow in flows:
             rows.append(
                 {**flow["features"], "label": item["label"], "group": item["group"], "split": item["split"]}
@@ -188,8 +190,8 @@ def prepare_pcaps(manifest_path, name="pcap_training", prefix=None):
         name,
         frame,
         {
-            "schema": SCHEMA,
-            "features": FEATURES,
+            "schema": CONTEXT_SCHEMA if context else SCHEMA,
+            "features": ALL_FEATURES if context else FEATURES,
             "source": str(manifest_path),
             "source_sha256": fingerprint(manifest_path),
             "capture_hashes": list(hashes),
@@ -198,6 +200,8 @@ def prepare_pcaps(manifest_path, name="pcap_training", prefix=None):
             "observation": f"prefix{prefix}" if prefix else "completed",
             "prefix": prefix,
             "controlled_lab": bool(manifest.get("controlled_lab", False)),
+            "split_policy": "Explicit capture-group partitions from manifest; no group crosses partitions",
+            "context": context,
             "warnings": [
                 "Manifest labels apply to every flow in each capture; use homogeneous captures.",
                 "Controlled lab traffic does not establish generalization to Internet attacks.",
