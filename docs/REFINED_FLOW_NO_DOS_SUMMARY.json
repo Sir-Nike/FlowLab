@@ -1,0 +1,1150 @@
+{
+  "dataset": "refined_flow_no_dos",
+  "dataset_sha256": "2089146b5210ca4e6c2b4907a9bec06722f23e77e39f2004ce7a146375de5462",
+  "rows": 36058,
+  "counts": {
+    "test": {
+      "BENIGN": 4920,
+      "BruteForce": 2093,
+      "DDoS": 108,
+      "PortScan": 1657
+    },
+    "train": {
+      "BENIGN": 11398,
+      "BruteForce": 4748,
+      "DDoS": 225,
+      "PortScan": 3512
+    },
+    "validation": {
+      "BENIGN": 4190,
+      "BruteForce": 1805,
+      "DDoS": 87,
+      "PortScan": 1315
+    }
+  },
+  "removed_rows": 5366,
+  "removed_counts": {
+    "train": 2937,
+    "test": 1333,
+    "validation": 1096
+  },
+  "parent_dataset_sha256": "4ae249532321c65f32c1e14cb8560d3515c8642664be347134d5ffc5d7356312",
+  "split_policy": "Preserved original refined-flow capture/episode partitions; removed DoS from train, validation and test without resplitting",
+  "warnings": [
+    "Four-class ablation: excludes both single-source UDP DoS and HTTPDoS, which share the DoS label.",
+    "Higher F1 after class removal reflects a changed task; not evidence of improved five-class detection.",
+    "Original homogeneous lab-generator and duplicate-feature limitations remain. This model cannot output DoS."
+  ],
+  "models": {
+    "logistic": {
+      "id": "refined_flow_no_dos--logistic_tuned",
+      "sha256": "0e1665c15454df6468d51dc5360fdb4016bdbe13a1f4f128f6defe96068f65d7",
+      "training_seconds": 0.7170072720000462,
+      "selected_parameters": {
+        "C": 10
+      },
+      "validation": {
+        "macro_f1": 1.0,
+        "macro_definition": "Unweighted mean over classes with ground-truth support in this partition",
+        "evaluated_classes": [
+          "BENIGN",
+          "BruteForce",
+          "DDoS",
+          "PortScan"
+        ],
+        "accuracy": 1.0,
+        "false_positive_rate": 0.0,
+        "report": {
+          "BENIGN": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 4190.0
+          },
+          "BruteForce": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 1805.0
+          },
+          "DDoS": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 87.0
+          },
+          "PortScan": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 1315.0
+          },
+          "accuracy": 1.0,
+          "macro avg": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 7397.0
+          },
+          "weighted avg": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 7397.0
+          }
+        },
+        "labels": [
+          "BENIGN",
+          "BruteForce",
+          "DDoS",
+          "PortScan"
+        ],
+        "confusion": [
+          [
+            4190,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            1805,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            87,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            1315
+          ]
+        ],
+        "inference_ms_per_flow": 0.014092277004248314,
+        "unseen_classes": [],
+        "brier_definition": "Sum of squared class probability errors, averaged over labels seen in training",
+        "multiclass_brier": 4.990956816624343e-07,
+        "ece_10_bins": 5.813261690135185e-06
+      },
+      "test": {
+        "macro_f1": 0.9999148589211231,
+        "macro_definition": "Unweighted mean over classes with ground-truth support in this partition",
+        "evaluated_classes": [
+          "BENIGN",
+          "BruteForce",
+          "DDoS",
+          "PortScan"
+        ],
+        "accuracy": 0.9998860788334473,
+        "false_positive_rate": 0.0,
+        "report": {
+          "BENIGN": {
+            "precision": 0.9997967892704734,
+            "recall": 1.0,
+            "f1-score": 0.9998983843105376,
+            "support": 4920.0
+          },
+          "BruteForce": {
+            "precision": 1.0,
+            "recall": 0.9995222169135213,
+            "f1-score": 0.9997610513739545,
+            "support": 2093.0
+          },
+          "DDoS": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 108.0
+          },
+          "PortScan": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 1657.0
+          },
+          "accuracy": 0.9998860788334473,
+          "macro avg": {
+            "precision": 0.9999491973176183,
+            "recall": 0.9998805542283803,
+            "f1-score": 0.9999148589211231,
+            "support": 8778.0
+          },
+          "weighted avg": {
+            "precision": 0.9998861019834506,
+            "recall": 0.9998860788334473,
+            "f1-score": 0.9998860710108831,
+            "support": 8778.0
+          }
+        },
+        "labels": [
+          "BENIGN",
+          "BruteForce",
+          "DDoS",
+          "PortScan"
+        ],
+        "confusion": [
+          [
+            4920,
+            0,
+            0,
+            0
+          ],
+          [
+            1,
+            2092,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            108,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            1657
+          ]
+        ],
+        "inference_ms_per_flow": 0.014171823649987484,
+        "unseen_classes": [],
+        "brier_definition": "Sum of squared class probability errors, averaged over labels seen in training",
+        "multiclass_brier": 0.0002208405297665127,
+        "ece_10_bins": 0.00011215705678457866,
+        "uncalibrated_multiclass_brier": 0.0005291721457111317
+      }
+    },
+    "rf": {
+      "id": "refined_flow_no_dos--rf_tuned",
+      "sha256": "6dffbc50f576659616c8d1de94dac75fb47908507a1405711ce7290acf340297",
+      "training_seconds": 2.034266369000761,
+      "selected_parameters": {
+        "max_depth": 8
+      },
+      "validation": {
+        "macro_f1": 1.0,
+        "macro_definition": "Unweighted mean over classes with ground-truth support in this partition",
+        "evaluated_classes": [
+          "BENIGN",
+          "BruteForce",
+          "DDoS",
+          "PortScan"
+        ],
+        "accuracy": 1.0,
+        "false_positive_rate": 0.0,
+        "report": {
+          "BENIGN": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 4190.0
+          },
+          "BruteForce": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 1805.0
+          },
+          "DDoS": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 87.0
+          },
+          "PortScan": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 1315.0
+          },
+          "accuracy": 1.0,
+          "macro avg": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 7397.0
+          },
+          "weighted avg": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 7397.0
+          }
+        },
+        "labels": [
+          "BENIGN",
+          "BruteForce",
+          "DDoS",
+          "PortScan"
+        ],
+        "confusion": [
+          [
+            4190,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            1805,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            87,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            1315
+          ]
+        ],
+        "inference_ms_per_flow": 0.017108440584051247,
+        "unseen_classes": [],
+        "brier_definition": "Sum of squared class probability errors, averaged over labels seen in training",
+        "multiclass_brier": 2.3766290837329296e-21,
+        "ece_10_bins": 6.942224572981104e-13
+      },
+      "test": {
+        "macro_f1": 1.0,
+        "macro_definition": "Unweighted mean over classes with ground-truth support in this partition",
+        "evaluated_classes": [
+          "BENIGN",
+          "BruteForce",
+          "DDoS",
+          "PortScan"
+        ],
+        "accuracy": 1.0,
+        "false_positive_rate": 0.0,
+        "report": {
+          "BENIGN": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 4920.0
+          },
+          "BruteForce": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 2093.0
+          },
+          "DDoS": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 108.0
+          },
+          "PortScan": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 1657.0
+          },
+          "accuracy": 1.0,
+          "macro avg": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 8778.0
+          },
+          "weighted avg": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 8778.0
+          }
+        },
+        "labels": [
+          "BENIGN",
+          "BruteForce",
+          "DDoS",
+          "PortScan"
+        ],
+        "confusion": [
+          [
+            4920,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            2093,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            108,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            1657
+          ]
+        ],
+        "inference_ms_per_flow": 0.016172573251393308,
+        "unseen_classes": [],
+        "brier_definition": "Sum of squared class probability errors, averaged over labels seen in training",
+        "multiclass_brier": 4.420180841466977e-35,
+        "ece_10_bins": 0.0,
+        "uncalibrated_multiclass_brier": 6.799641933150652e-05
+      }
+    },
+    "xgboost": {
+      "id": "refined_flow_no_dos--xgboost_tuned",
+      "sha256": "8a5289bfd1feaea36a0ddabac8039928469271171994c9be7cadcca3d1097097",
+      "training_seconds": 1.4023685889997068,
+      "selected_parameters": {
+        "max_depth": 3
+      },
+      "validation": {
+        "macro_f1": 0.9955245683097163,
+        "macro_definition": "Unweighted mean over classes with ground-truth support in this partition",
+        "evaluated_classes": [
+          "BENIGN",
+          "BruteForce",
+          "DDoS",
+          "PortScan"
+        ],
+        "accuracy": 0.999594430174395,
+        "false_positive_rate": 0.0,
+        "report": {
+          "BENIGN": {
+            "precision": 0.9992845218220844,
+            "recall": 1.0,
+            "f1-score": 0.9996421328879876,
+            "support": 4190.0
+          },
+          "BruteForce": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 1805.0
+          },
+          "DDoS": {
+            "precision": 1.0,
+            "recall": 0.9655172413793104,
+            "f1-score": 0.9824561403508771,
+            "support": 87.0
+          },
+          "PortScan": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 1315.0
+          },
+          "accuracy": 0.999594430174395,
+          "macro avg": {
+            "precision": 0.9998211304555211,
+            "recall": 0.9913793103448276,
+            "f1-score": 0.9955245683097163,
+            "support": 7397.0
+          },
+          "weighted avg": {
+            "precision": 0.9995947203507548,
+            "recall": 0.999594430174395,
+            "f1-score": 0.9995909451143971,
+            "support": 7397.0
+          }
+        },
+        "labels": [
+          "BENIGN",
+          "BruteForce",
+          "DDoS",
+          "PortScan"
+        ],
+        "confusion": [
+          [
+            4190,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            1805,
+            0,
+            0
+          ],
+          [
+            3,
+            0,
+            84,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            1315
+          ]
+        ],
+        "inference_ms_per_flow": 0.014593069082000093,
+        "unseen_classes": [],
+        "brier_definition": "Sum of squared class probability errors, averaged over labels seen in training",
+        "multiclass_brier": 0.0003925802587032558,
+        "ece_10_bins": 0.00024175649158564936
+      },
+      "test": {
+        "macro_f1": 1.0,
+        "macro_definition": "Unweighted mean over classes with ground-truth support in this partition",
+        "evaluated_classes": [
+          "BENIGN",
+          "BruteForce",
+          "DDoS",
+          "PortScan"
+        ],
+        "accuracy": 1.0,
+        "false_positive_rate": 0.0,
+        "report": {
+          "BENIGN": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 4920.0
+          },
+          "BruteForce": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 2093.0
+          },
+          "DDoS": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 108.0
+          },
+          "PortScan": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 1657.0
+          },
+          "accuracy": 1.0,
+          "macro avg": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 8778.0
+          },
+          "weighted avg": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 8778.0
+          }
+        },
+        "labels": [
+          "BENIGN",
+          "BruteForce",
+          "DDoS",
+          "PortScan"
+        ],
+        "confusion": [
+          [
+            4920,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            2093,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            108,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            1657
+          ]
+        ],
+        "inference_ms_per_flow": 0.014408809751724958,
+        "unseen_classes": [],
+        "brier_definition": "Sum of squared class probability errors, averaged over labels seen in training",
+        "multiclass_brier": 2.403439569455293e-07,
+        "ece_10_bins": 4.684925079345703e-05,
+        "uncalibrated_multiclass_brier": 5.119405345028143e-07
+      }
+    },
+    "extra": {
+      "id": "refined_flow_no_dos--extra_tuned",
+      "sha256": "4acae345071b13ece2b3a28820dce9a169291bfc088d56084de6d1ff91cc6233",
+      "training_seconds": 1.2700123940003323,
+      "selected_parameters": {
+        "min_samples_leaf": 1
+      },
+      "validation": {
+        "macro_f1": 1.0,
+        "macro_definition": "Unweighted mean over classes with ground-truth support in this partition",
+        "evaluated_classes": [
+          "BENIGN",
+          "BruteForce",
+          "DDoS",
+          "PortScan"
+        ],
+        "accuracy": 1.0,
+        "false_positive_rate": 0.0,
+        "report": {
+          "BENIGN": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 4190.0
+          },
+          "BruteForce": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 1805.0
+          },
+          "DDoS": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 87.0
+          },
+          "PortScan": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 1315.0
+          },
+          "accuracy": 1.0,
+          "macro avg": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 7397.0
+          },
+          "weighted avg": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 7397.0
+          }
+        },
+        "labels": [
+          "BENIGN",
+          "BruteForce",
+          "DDoS",
+          "PortScan"
+        ],
+        "confusion": [
+          [
+            4190,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            1805,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            87,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            1315
+          ]
+        ],
+        "inference_ms_per_flow": 0.016791586453977936,
+        "unseen_classes": [],
+        "brier_definition": "Sum of squared class probability errors, averaged over labels seen in training",
+        "multiclass_brier": 1.0599612101647978e-33,
+        "ece_10_bins": 0.0
+      },
+      "test": {
+        "macro_f1": 1.0,
+        "macro_definition": "Unweighted mean over classes with ground-truth support in this partition",
+        "evaluated_classes": [
+          "BENIGN",
+          "BruteForce",
+          "DDoS",
+          "PortScan"
+        ],
+        "accuracy": 1.0,
+        "false_positive_rate": 0.0,
+        "report": {
+          "BENIGN": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 4920.0
+          },
+          "BruteForce": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 2093.0
+          },
+          "DDoS": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 108.0
+          },
+          "PortScan": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 1657.0
+          },
+          "accuracy": 1.0,
+          "macro avg": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 8778.0
+          },
+          "weighted avg": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 8778.0
+          }
+        },
+        "labels": [
+          "BENIGN",
+          "BruteForce",
+          "DDoS",
+          "PortScan"
+        ],
+        "confusion": [
+          [
+            4920,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            2093,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            108,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            1657
+          ]
+        ],
+        "inference_ms_per_flow": 0.01629185315557157,
+        "unseen_classes": [],
+        "brier_definition": "Sum of squared class probability errors, averaged over labels seen in training",
+        "multiclass_brier": 3.358393262640658e-62,
+        "ece_10_bins": 0.0,
+        "uncalibrated_multiclass_brier": 4.417351356126864e-07
+      }
+    },
+    "mlp": {
+      "id": "refined_flow_no_dos--mlp_tuned",
+      "sha256": "a7412e3481de40d5fa75c4c26d2e824ec8a422586be11cfd0defabb1fb0836bc",
+      "training_seconds": 6.3078658269996595,
+      "selected_parameters": {
+        "alpha": 0.1
+      },
+      "validation": {
+        "macro_f1": 1.0,
+        "macro_definition": "Unweighted mean over classes with ground-truth support in this partition",
+        "evaluated_classes": [
+          "BENIGN",
+          "BruteForce",
+          "DDoS",
+          "PortScan"
+        ],
+        "accuracy": 1.0,
+        "false_positive_rate": 0.0,
+        "report": {
+          "BENIGN": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 4190.0
+          },
+          "BruteForce": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 1805.0
+          },
+          "DDoS": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 87.0
+          },
+          "PortScan": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 1315.0
+          },
+          "accuracy": 1.0,
+          "macro avg": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 7397.0
+          },
+          "weighted avg": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 7397.0
+          }
+        },
+        "labels": [
+          "BENIGN",
+          "BruteForce",
+          "DDoS",
+          "PortScan"
+        ],
+        "confusion": [
+          [
+            4190,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            1805,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            87,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            1315
+          ]
+        ],
+        "inference_ms_per_flow": 0.017385617412413852,
+        "unseen_classes": [],
+        "brier_definition": "Sum of squared class probability errors, averaged over labels seen in training",
+        "multiclass_brier": 2.7115799897202334e-37,
+        "ece_10_bins": 0.0
+      },
+      "test": {
+        "macro_f1": 1.0,
+        "macro_definition": "Unweighted mean over classes with ground-truth support in this partition",
+        "evaluated_classes": [
+          "BENIGN",
+          "BruteForce",
+          "DDoS",
+          "PortScan"
+        ],
+        "accuracy": 1.0,
+        "false_positive_rate": 0.0,
+        "report": {
+          "BENIGN": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 4920.0
+          },
+          "BruteForce": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 2093.0
+          },
+          "DDoS": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 108.0
+          },
+          "PortScan": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 1657.0
+          },
+          "accuracy": 1.0,
+          "macro avg": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 8778.0
+          },
+          "weighted avg": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 8778.0
+          }
+        },
+        "labels": [
+          "BENIGN",
+          "BruteForce",
+          "DDoS",
+          "PortScan"
+        ],
+        "confusion": [
+          [
+            4920,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            2093,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            108,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            1657
+          ]
+        ],
+        "inference_ms_per_flow": 0.01629378560034654,
+        "unseen_classes": [],
+        "brier_definition": "Sum of squared class probability errors, averaged over labels seen in training",
+        "multiclass_brier": 2.2960730652751854e-51,
+        "ece_10_bins": 0.0,
+        "uncalibrated_multiclass_brier": 2.9025996664519745e-05
+      }
+    },
+    "tabm": {
+      "id": "refined_flow_no_dos--tabm_tuned",
+      "sha256": "ba820c5acccc17240cf7dee3434b73a7c5b9a347d33d7bf04a40d4dc4270b666",
+      "training_seconds": 34.206333854999684,
+      "selected_parameters": {
+        "epochs": 35
+      },
+      "validation": {
+        "macro_f1": 1.0,
+        "macro_definition": "Unweighted mean over classes with ground-truth support in this partition",
+        "evaluated_classes": [
+          "BENIGN",
+          "BruteForce",
+          "DDoS",
+          "PortScan"
+        ],
+        "accuracy": 1.0,
+        "false_positive_rate": 0.0,
+        "report": {
+          "BENIGN": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 4190.0
+          },
+          "BruteForce": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 1805.0
+          },
+          "DDoS": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 87.0
+          },
+          "PortScan": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 1315.0
+          },
+          "accuracy": 1.0,
+          "macro avg": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 7397.0
+          },
+          "weighted avg": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 7397.0
+          }
+        },
+        "labels": [
+          "BENIGN",
+          "BruteForce",
+          "DDoS",
+          "PortScan"
+        ],
+        "confusion": [
+          [
+            4190,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            1805,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            87,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            1315
+          ]
+        ],
+        "inference_ms_per_flow": 0.015967940246037753,
+        "unseen_classes": [],
+        "brier_definition": "Sum of squared class probability errors, averaged over labels seen in training",
+        "multiclass_brier": 1.8192072776332642e-19,
+        "ece_10_bins": 0.0
+      },
+      "test": {
+        "macro_f1": 1.0,
+        "macro_definition": "Unweighted mean over classes with ground-truth support in this partition",
+        "evaluated_classes": [
+          "BENIGN",
+          "BruteForce",
+          "DDoS",
+          "PortScan"
+        ],
+        "accuracy": 1.0,
+        "false_positive_rate": 0.0,
+        "report": {
+          "BENIGN": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 4920.0
+          },
+          "BruteForce": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 2093.0
+          },
+          "DDoS": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 108.0
+          },
+          "PortScan": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 1657.0
+          },
+          "accuracy": 1.0,
+          "macro avg": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 8778.0
+          },
+          "weighted avg": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 8778.0
+          }
+        },
+        "labels": [
+          "BENIGN",
+          "BruteForce",
+          "DDoS",
+          "PortScan"
+        ],
+        "confusion": [
+          [
+            4920,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            2093,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            108,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            1657
+          ]
+        ],
+        "inference_ms_per_flow": 0.015241856801118997,
+        "unseen_classes": [],
+        "brier_definition": "Sum of squared class probability errors, averaged over labels seen in training",
+        "multiclass_brier": 4.4760757940767814e-18,
+        "ece_10_bins": 0.0,
+        "uncalibrated_multiclass_brier": 2.7294259885101425e-05
+      }
+    }
+  }
+}
