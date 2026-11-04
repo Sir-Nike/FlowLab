@@ -1,0 +1,11 @@
+{
+  "synthetic": false,
+  "captures": [
+    {"path": "captures/benign-train.pcap", "label": "BENIGN", "group": "benign-episode-1", "split": "train"},
+    {"path": "captures/dos-train.pcap", "label": "DoS", "group": "dos-episode-1", "split": "train"},
+    {"path": "captures/benign-validation.pcap", "label": "BENIGN", "group": "benign-episode-2", "split": "validation"},
+    {"path": "captures/dos-validation.pcap", "label": "DoS", "group": "dos-episode-2", "split": "validation"},
+    {"path": "captures/benign-test.pcap", "label": "BENIGN", "group": "benign-episode-3", "split": "test"},
+    {"path": "captures/dos-test.pcap", "label": "DoS", "group": "dos-episode-3", "split": "test"}
+  ]
+}

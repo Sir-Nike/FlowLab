@@ -1,0 +1,22 @@
+# Four actual KVM guests. Peer traffic uses the private network, not forwarded control ports.
+Vagrant.configure("2") do |config|
+  config.vm.box = "generic/ubuntu2204"
+  config.vm.synced_folder "..", "/vagrant", disabled: true
+  (1..4).each do |i|
+    config.vm.define "flowlab#{i}" do |node|
+      node.vm.hostname = "flowlab#{i}"
+      node.vm.network "private_network", ip: "192.168.56.#{10+i}", libvirt__network_name: "flowlab-peers", libvirt__forward_mode: "none"
+      node.vm.network "forwarded_port", guest: 9100, host: 9100+i, host_ip: "127.0.0.1", auto_correct: false
+      node.vm.provider :libvirt do |lv|
+        lv.qemu_use_session = false
+        lv.storage_pool_name = ENV.fetch("FLOWLAB_STORAGE_POOL", "images")
+        lv.memory = 1024
+        lv.cpus = 1
+      end
+      node.vm.provision "file", source: "agent.py", destination: "/tmp/flowlab-agent.py"
+      node.vm.provision "file", source: "scapy-vendor.tar.gz", destination: "/tmp/flowlab-scapy.tar.gz"
+      node.vm.provision "file", source: "token", destination: "/tmp/flowlab-token"
+      node.vm.provision "shell", path: "provision.sh", args: ["192.168.56.#{10+i}"]
+    end
+  end
+end
