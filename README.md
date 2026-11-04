@@ -1,7 +1,5 @@
 # FlowLab
 
-**Latest validation — 5 November 2026:** the frozen recommended model failed a new-generator mixed-traffic challenge (20 runs; 4,177 labelled observed flows): argmax macro F1 **0.1036**, policy macro F1 **0.0913**, benign block eligibility **11.83%**. Earlier high scores apply to the original controlled corpus. This is an experimental testbed, not a robust deployed detector. See [challenge findings](docs/INDEPENDENT_CHALLENGE.md) and [high-score audit](docs/HIGH_F1_AUDIT.md). No retraining used this challenge.
-
 A local intrusion detection research workbench: train classifiers, inspect flow
 predictions, process PCAPs, compare random and burst packet loss, and connect an
 isolated VM lab for measured live traffic and connection enforcement.
@@ -310,7 +308,3 @@ The updated [report](docs/FlowLab_Final_Report.docx),
 [presentation](docs/FlowLab_Project_Presentation.pptx) and
 [refinement summary](docs/REFINEMENT_SUMMARY.json) contain the measured results.
 The original `STUDY_SUMMARY.json` preserves the earlier baseline study.
-
-### Frozen model set challenge comparison
-
-The same saved challenge was evaluated by all six algorithms in refined_flow and original 80-feature cicids2017, including baseline and tuned variants (24 models). Refined-flow F1 ranges 0.1770–0.4779; CICIDS completed-flow family F1 ranges 0.1895–0.3249. Neither set is robust on this challenge. See [full results and feature-budget caveats](docs/CHALLENGE_MODEL_SETS.md).

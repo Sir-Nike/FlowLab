@@ -1,13 +1,5 @@
 # FlowLab measured results
 
-## Model set comparison on the same saved challenge
-
-All six refined-flow and original CICIDS2017 models, baseline and tuned variants, were frozen and evaluated on the same twenty captures (24 models). Refined-flow macro F1 ranged from 0.1770 to 0.4779; original CICIDS completed-flow family macro F1 ranged from 0.1895 to 0.3249. The extractors emitted 4,177 and 4,134 labelled records respectively. These models also failed to establish broad reliability. See [full model comparison](CHALLENGE_MODEL_SETS.md). CICIDS completed flows and early refined prefixes have different observation budgets.
-
-## New generator challenge on 5 November 2026
-
-The frozen recommended mixed-context TabM failed the new controlled mixed-traffic challenge: 20 runs, 4,177 labelled observed flows, argmax macro F1 0.1036, uncertainty-policy macro F1 0.0913, and 11.83% benign block eligibility with enforcement disabled. These results qualify all earlier strong generalization interpretations. See [protocol and evidence](INDEPENDENT_CHALLENGE.md), [compact summary](INDEPENDENT_CHALLENGE_SUMMARY.json) and [audit](HIGH_F1_AUDIT.md). The same four VMs were used; this is new-generator validation, not independent-network validation. Earlier report/deck results are historical controlled-corpus results and must be presented with this addendum.
-
 4 November 2026
 
 The first sections preserve the initial baseline study. The extended study below
