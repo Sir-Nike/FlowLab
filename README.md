@@ -310,3 +310,7 @@ The updated [report](docs/FlowLab_Final_Report.docx),
 [presentation](docs/FlowLab_Project_Presentation.pptx) and
 [refinement summary](docs/REFINEMENT_SUMMARY.json) contain the measured results.
 The original `STUDY_SUMMARY.json` preserves the earlier baseline study.
+
+### Frozen model set challenge comparison
+
+The same saved challenge was evaluated by all six algorithms in refined_flow and original 80-feature cicids2017, including baseline and tuned variants (24 models). Refined-flow F1 ranges 0.1770–0.4779; CICIDS completed-flow family F1 ranges 0.1895–0.3249. Neither set is robust on this challenge. See [full results and feature-budget caveats](docs/CHALLENGE_MODEL_SETS.md).
