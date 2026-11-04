@@ -1,0 +1,37 @@
+# Audit of unusually high FlowLab F1 scores
+
+5 November 2026
+
+## Conclusion
+
+The reported saved-model scores reproduce, but they measure a highly familiar controlled environment. Generator fingerprints, correlated records, reuse of the same attack campaigns across windows and pooling of unequal source/class supports limit interpretation. No large numerical scoring error or direct label-column input was found in the inspected path. This audit cannot rule out every form of leakage or establish independent-network generalization. No deployment model was changed or retrained.
+
+## Confirmed findings
+
+1. **Nearest-neighbor copying nearly matches TabM.** A one-nearest-neighbor classifier in train-fitted, median-imputed, signed-log standardized feature space achieved combined test macro F1 0.995648, against TabM 0.996552. Median nearest-training distance is 0.0890 in that standardized space. Distances have no universal similarity threshold; the predictive result demonstrates that training neighborhoods suffice for this test.
+2. **Generators expose shortcuts.** Benign UDP payloads trigger a reply; attack UDP payloads do not. Password guessing produces a short fixed rejection response and HTTP 401, unlike ordinary HTTP bodies. Scans repeat a fixed port range. Neither payload strings nor status codes are direct model inputs, but lengths, response ratios, flags and timing can reveal these choices. This is setup-specific separability, not proof that learned attack semantics generalize.
+3. **Context is strongly predictive in homogeneous sessions.** A newly fitted context-only depth-three decision tree gets lab test macro F1 0.851336; depth eight gets 0.930481. All flows within one scenario capture inherit its label. Concurrent realistic benign/attack mixtures are not represented in these homogeneous labelled lab sessions. Context can describe the session background rather than only the individual flow. Source-count-only depth-three performance is just 0.260544 on lab, so source count alone does not explain the high score.
+4. **Source identity is inferable indirectly.** A depth-three tree predicts lab versus CICIDS origin with 96.28% test accuracy from the allowed features. Explicit source-domain labels are excluded, but distributional fingerprints remain. This is a domain-separability warning, not direct evidence the attack classifier uses that shortcut.
+5. **Pooling masks the small public brute-force class.** The saved mixed model achieves macro F1 0.999016 on 10,111 lab test rows and 0.965637 on 6,355 CICIDS test rows; these are ordinary argmax scores, distinct from policy scores counting uncertainty. CICIDS brute-force F1 is 0.857143 (recall 9/11), whereas the pooled class has 2,104 examples, overwhelmingly lab traffic. The combined macro F1 of 0.996552 therefore obscures this weakness.
+6. **Feature duplicates cross split boundaries.** Mixed-context test contains 25/16,466 feature records exactly matching training and 35 matching validation (sets may overlap). Excluding the 25 training matches changes mixed-model F1 from 0.996552403 to 0.996552108, a negligible difference. Refined-context test has 24 training matches. Refined-flow test has 2,471/10,111 training matches: the flow-only control needs a separately reported duplicate-clean sensitivity analysis. Equal feature vectors, especially short flows, do not prove reuse of identical packets.
+7. **Test construction is familiar and selected.** CICIDS splits are separated windows from the same three capture days and attack campaigns, not held-out attack campaigns or tools. Lab splits hold out episodes but reuse the generator, services and rate/duration schedule. Lab rates in test repeat training rate choices. Public windows are selected using label timing, and the mixed dataset caps public records per class/split at lab counts. Those choices yield an engineered evaluation distribution rather than deployment prevalence. They do not directly fit on test examples, but constrain representativeness.
+8. **Confidence and enforcement are separate metrics.** Argmax class F1, selective-policy F1, accepted accuracy, binary detection and blocking eligibility must not be substituted for one another. The earlier 0.9989 lab-only policy score and 0.996552 combined argmax score have different populations and policies. Multiple correlated flows are not independent campaigns; high row counts must not be used to imply broad statistical certainty.
+
+## Checks that passed within the inspected scope
+
+- Zero cross-split group IDs in refined-flow, refined-context, CICIDS-context and mixed-context datasets.
+- All 18 contextual hierarchical model metadata fingerprints match their current prepared CSVs.
+- Saved recommended-model validation/test argmax scores independently reproduce.
+- Training code explicitly selects the declared numeric features. Labels, group IDs, raw labels, split and source-domain identity are excluded from predictive inputs.
+- Imputation and scaling are fitted on training rows. Model settings use a validation-group tuning subset; calibration uses another validation-group subset. Test rows do not enter those fitting calls.
+- Context code uses trailing observed-packet windows, expires old packets and does not update previously emitted records. Short open flows can be emitted at capture end, so an EOF record is not necessarily a ten-packet immediate decision.
+- Capture preparation rejects equal file hashes across partitions. Original CICIDS flow identity conflicts are tracked during preparation; the recorded preparation report found zero conflicts. This audit inspected that mechanism and report; it did not re-download or re-extract every raw packet or independently certify every corrected label match.
+- Ordinary class F1 uses ground-truth-supported classes consistently. All five target classes are supported in the combined test. No accuracy-as-F1 substitution was found.
+
+## Required next experiments for stronger claims
+
+Freeze the current model and thresholds. Collect genuinely new traffic with different generators and services, independent parameter distributions, successful and failed legitimate logins, legitimate UDP without replies, attacks that receive replies, and overlapping benign/attack activity. Label the individual flows rather than assigning one label to mixed captures. Hold out complete tools/campaigns and networks, evaluate each source and family separately, and report grouped episode variability. Reprepare a duplicate-clean sensitivity dataset without silently rewriting existing evidence. Do not select new settings from the final independent test. Refresh public-window extraction with warm-up context or explicitly discard initial context warm-up intervals to assess boundary effects. Independently sample-check corrected label matching and excluded records.
+
+## Reproduction and artifacts
+
+Run `.venv/bin/python -m scripts.audit_high_scores` followed by `.venv/bin/python -m scripts.audit_high_scores_followup` from the repository root. They read local datasets/models and write `results/audit/high_scores.json`; they fit only diagnostic trees and a nearest-neighbor probe. The second command requires the first output. `docs/HIGH_F1_AUDIT.json` is the reviewed snapshot. The audit uses the existing split for diagnostics and must not be presented as a new untouched external test. Plotting artifacts from the preceding request are separate.

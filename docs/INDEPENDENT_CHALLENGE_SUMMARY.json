@@ -1,0 +1,237 @@
+{
+  "model": "mixed_prefix_context--tabm_hier",
+  "runs": 20,
+  "artifact_unchanged": true,
+  "results": {
+    "None": {
+      "rows": 4177,
+      "policy_accuracy": 0.2669379937754369,
+      "policy_macro_f1": 0.09131859131859131,
+      "argmax_macro_f1": 0.10359094457455113,
+      "report": {
+        "BENIGN": {
+          "precision": 0.3547566019726376,
+          "recall": 0.6404365307294658,
+          "f1-score": 0.45659295659295657,
+          "support": 1741.0
+        },
+        "BruteForce": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 305.0
+        },
+        "DDoS": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 1127.0
+        },
+        "DoS": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 619.0
+        },
+        "PortScan": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 385.0
+        },
+        "micro avg": {
+          "precision": 0.2928046218487395,
+          "recall": 0.2669379937754369,
+          "f1-score": 0.27927363807138383,
+          "support": 4177.0
+        },
+        "macro avg": {
+          "precision": 0.07095132039452752,
+          "recall": 0.12808730614589317,
+          "f1-score": 0.09131859131859131,
+          "support": 4177.0
+        },
+        "weighted avg": {
+          "precision": 0.14786479387942592,
+          "recall": 0.2669379937754369,
+          "f1-score": 0.19031083012409322,
+          "support": 4177.0
+        }
+      },
+      "benign_block_eligibility": 0.1183228029867892,
+      "coverage": 0.9116590854680393
+    },
+    "0": {
+      "rows": 2300,
+      "policy_accuracy": 0.30826086956521737,
+      "policy_macro_f1": 0.1021981981981982,
+      "argmax_macro_f1": 0.11073051380636141,
+      "report": {
+        "BENIGN": {
+          "precision": 0.40101809954751133,
+          "recall": 0.7040714995034757,
+          "f1-score": 0.510990990990991,
+          "support": 1007.0
+        },
+        "BruteForce": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 172.0
+        },
+        "DDoS": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 578.0
+        },
+        "DoS": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 309.0
+        },
+        "PortScan": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 234.0
+        },
+        "micro avg": {
+          "precision": 0.3305361305361305,
+          "recall": 0.30826086956521737,
+          "f1-score": 0.3190101237345332,
+          "support": 2300.0
+        },
+        "macro avg": {
+          "precision": 0.08020361990950227,
+          "recall": 0.14081429990069513,
+          "f1-score": 0.1021981981981982,
+          "support": 2300.0
+        },
+        "weighted avg": {
+          "precision": 0.1755761853236278,
+          "recall": 0.30826086956521737,
+          "f1-score": 0.22372518605562083,
+          "support": 2300.0
+        }
+      },
+      "benign_block_eligibility": 0.10625620655412116,
+      "coverage": 0.9326086956521739
+    },
+    "0.1": {
+      "rows": 1877,
+      "policy_accuracy": 0.216302610548748,
+      "policy_macro_f1": 0.07700331910858227,
+      "argmax_macro_f1": 0.09456473707467963,
+      "report": {
+        "BENIGN": {
+          "precision": 0.2952727272727273,
+          "recall": 0.553133514986376,
+          "f1-score": 0.38501659554291134,
+          "support": 734.0
+        },
+        "BruteForce": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 133.0
+        },
+        "DDoS": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 549.0
+        },
+        "DoS": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 310.0
+        },
+        "PortScan": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 151.0
+        },
+        "micro avg": {
+          "precision": 0.24413710162357186,
+          "recall": 0.216302610548748,
+          "f1-score": 0.22937853107344633,
+          "support": 1877.0
+        },
+        "macro avg": {
+          "precision": 0.05905454545454546,
+          "recall": 0.1106267029972752,
+          "f1-score": 0.07700331910858227,
+          "support": 1877.0
+        },
+        "weighted avg": {
+          "precision": 0.11546626628565895,
+          "recall": 0.21630261054874797,
+          "f1-score": 0.15056056533217735,
+          "support": 1877.0
+        }
+      },
+      "benign_block_eligibility": 0.13487738419618528,
+      "coverage": 0.8859882791688866
+    }
+  },
+  "cases": [
+    {
+      "case": "distributed_with_background",
+      "runs": 4,
+      "rows": 1355,
+      "accuracy": 0.16236162361623616,
+      "supported_class_macro_f1": 0.13968253968253969,
+      "binary_attack_recall": 0.0,
+      "benign_block_eligibility": 0.0
+    },
+    {
+      "case": "legitimate_no_reply",
+      "runs": 4,
+      "rows": 652,
+      "accuracy": 0.6733128834355828,
+      "supported_class_macro_f1": 0.8047662694775435,
+      "binary_attack_recall": null,
+      "benign_block_eligibility": 0.05368098159509203
+    },
+    {
+      "case": "login_mixture",
+      "runs": 4,
+      "rows": 543,
+      "accuracy": 0.43646408839779005,
+      "supported_class_macro_f1": 0.3130779392338177,
+      "binary_attack_recall": 0.009836065573770493,
+      "benign_block_eligibility": 0.0
+    },
+    {
+      "case": "replying_single_load",
+      "runs": 4,
+      "rows": 811,
+      "accuracy": 0.23304562268803947,
+      "supported_class_macro_f1": 0.189,
+      "binary_attack_recall": 0.0,
+      "benign_block_eligibility": 0.0
+    },
+    {
+      "case": "scan_mixture",
+      "runs": 4,
+      "rows": 816,
+      "accuracy": 0.03676470588235294,
+      "supported_class_macro_f1": 0.0650759219088937,
+      "binary_attack_recall": 0.9844155844155844,
+      "benign_block_eligibility": 0.39675174013921116
+    }
+  ],
+  "frozen_hashes": {
+    "models/mixed_prefix_context--tabm_hier.joblib": "e81fc5134107e542e2409642fcc013d9ae8249818fc8b53c54abc436fb181043",
+    "models/mixed_prefix_context--tabm_hier.json": "9ea1674744ba3ba0a5fd49c0b15f70efb67512e42ec6c1df3a0490f812401cdf"
+  },
+  "generator_sha256": "5b4f0d57256100b3603013887ec1b5f5574613584662e933f33c60c883c57f79",
+  "unlabelled_or_ambiguous_flows": 0,
+  "capture_limited_runs": 0,
+  "packets": 39701,
+  "scope": "New generator/service and mixed roles on existing VMs; NOT an independent physical network or held-out public campaign. Attack labels describe bounded attack-intent workloads, not demonstrated service impairment. No model selection or threshold tuning."
+}

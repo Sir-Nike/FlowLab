@@ -1,5 +1,9 @@
 # FlowLab measured results
 
+## New generator challenge on 5 November 2026
+
+The frozen recommended mixed-context TabM failed the new controlled mixed-traffic challenge: 20 runs, 4,177 labelled observed flows, argmax macro F1 0.1036, uncertainty-policy macro F1 0.0913, and 11.83% benign block eligibility with enforcement disabled. These results qualify all earlier strong generalization interpretations. See [protocol and evidence](INDEPENDENT_CHALLENGE.md), [compact summary](INDEPENDENT_CHALLENGE_SUMMARY.json) and [audit](HIGH_F1_AUDIT.md). The same four VMs were used; this is new-generator validation, not independent-network validation. Earlier report/deck results are historical controlled-corpus results and must be presented with this addendum.
+
 4 November 2026
 
 The first sections preserve the initial baseline study. The extended study below

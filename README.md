@@ -1,5 +1,7 @@
 # FlowLab
 
+**Latest validation — 5 November 2026:** the frozen recommended model failed a new-generator mixed-traffic challenge (20 runs; 4,177 labelled observed flows): argmax macro F1 **0.1036**, policy macro F1 **0.0913**, benign block eligibility **11.83%**. Earlier high scores apply to the original controlled corpus. This is an experimental testbed, not a robust deployed detector. See [challenge findings](docs/INDEPENDENT_CHALLENGE.md) and [high-score audit](docs/HIGH_F1_AUDIT.md). No retraining used this challenge.
+
 A local intrusion detection research workbench: train classifiers, inspect flow
 predictions, process PCAPs, compare random and burst packet loss, and connect an
 isolated VM lab for measured live traffic and connection enforcement.
