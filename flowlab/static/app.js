@@ -66,21 +66,35 @@ async function loadModels(){
  state.models=await api('/models');
  state.recommended=(await api('/refinement')).summary?.recommended_model;
  $('model-count').textContent=`${state.models.length} trained artifacts`;
- refreshModelChoices();
+ options('model-dataset',state.datasets.map(d=>[d.name,d.name+(d.synthetic?' · synthetic':' · real dataset')]),'cicids2017');
+ options('csv-model',state.models.map(m=>[m.id,modelLabel(m)]));
+ refreshModelChoices();renderModels();
 }
 function renderDatasets(){
  $('dataset-list').innerHTML=state.datasets.map(d=>`<section class="panel dataset"><h2>${esc(d.name)} <span class="tag ${d.synthetic?'warn':''}">${d.synthetic?'Synthetic validation':d.name==='cicids2017'?'Corrected CICIDS2017':'Packet corpus'}</span></h2><p>${d.rows.toLocaleString()} prepared rows · ${d.features.length} features · ${esc(d.observation)} · ${d.live_compatible?'Packet compatible':'CSV benchmark only'}</p><p class="label-info">${esc(d.split_policy)}</p><p class="hash">SHA256 ${esc(d.sha256)}</p>${d.source.startsWith('https://')?`<a class="source-link" href="${esc(d.source)}" target="_blank" rel="noopener">Dataset source</a>`:`<p class="label-info">${esc(d.source)}</p>`}<ul class="warning-list">${d.warnings.map(w=>`<li>${esc(w)}</li>`).join('')}</ul><details><summary>Class counts by split</summary><div class="table-wrap"><table><thead><tr><th>Class</th><th>Train</th><th>Validation</th><th>Test</th></tr></thead><tbody>${[...new Set(Object.values(d.counts).flatMap(c=>Object.keys(c)))].map(c=>`<tr><td>${esc(c)}</td><td>${d.counts.train?.[c]||0}</td><td>${d.counts.validation?.[c]||0}</td><td>${d.counts.test?.[c]||0}</td></tr>`).join('')}</tbody></table></div></details></section>`).join('');
 }
+function renderModels(){
+ const rows=state.models.filter(m=>m.dataset===$('model-dataset').value);
+ $('model-table').innerHTML=rows.map(m=>{const t=m.metrics.test;return `<tr><td><strong>${esc(m.name)}${m.hierarchical?' · context + binary gate':m.calibrated?' · tuned':''}</strong><br><span class="tag ${m.synthetic?'warn':''}">${m.synthetic?'Synthetic validation':m.dataset==='cicids2017'?'CICIDS benchmark':'VM packet corpus'}</span></td><td>${fixed(t.macro_f1)}</td><td>${pct(t.accuracy)}</td><td>${pct(t.false_positive_rate)}</td><td>${fixed(m.training_seconds,1)} s</td><td><button class="quiet" data-model="${esc(m.id)}">Inspect model</button></td></tr>`}).join('');
+}
+on('model-dataset','change',renderModels);on('refresh-models','click',loadModels);
+$('model-table').addEventListener('click',e=>{const b=e.target.closest('[data-model]');if(b)renderModelDetail(state.models.find(m=>m.id===b.dataset.model))});
+function renderModelDetail(m){
+ const t=m.metrics.test;const labels=t.labels;
+ $('model-detail').innerHTML=`<h2>${esc(m.name)} <span class="tag ${m.synthetic?'warn':''}">${esc(m.dataset)}</span></h2><p>${m.training_rows.toLocaleString()} training rows · ${m.features.length} features · ${m.classes.length} learned classes · ${esc(m.observation)}</p><p class="label-info">Macro-F1 averages classes with test support. Classes with zero support remain visible below.</p><p class="hash">Dataset SHA256 ${esc(m.dataset_sha256)}</p><ul class="warning-list">${m.warnings.map(w=>`<li>${esc(w)}</li>`).join('')}</ul><p class="label-info">Test classes absent in training: ${esc(t.unseen_classes.join(', ')||'none')}. Threshold ${fixed(m.threshold)} selected on validation benign scores; ${m.calibrated?'temperature calibration fitted on separate validation groups.':'probabilities are not calibrated.'}</p><p class="label-info">${esc(m.search_policy||'Fixed baseline')} · CPU training ${fixed(m.training_cpu_seconds,1)} s · artifact ${fixed(m.artifact_mib,2)} MiB${m.calibrated?` · test Brier ${fixed(t.multiclass_brier,4)} · ECE ${fixed(t.ece_10_bins,4)}`:''}</p><h3>Per-class held-out results</h3><div class="table-wrap"><table><thead><tr><th>Class</th><th>Precision</th><th>Recall</th><th>F1</th><th>Test support</th></tr></thead><tbody>${labels.map(label=>{const r=t.report[label];return `<tr><td>${esc(label)}</td><td>${fixed(r.precision)}</td><td>${fixed(r.recall)}</td><td>${fixed(r['f1-score'])}</td><td>${r.support}</td></tr>`}).join('')}</tbody></table></div><details><summary>Confusion matrix · rows true, columns predicted</summary><div class="confusion"><table><thead><tr><th>True / predicted</th>${labels.map(l=>`<th title="${esc(l)}">${esc(l)}</th>`).join('')}</tr></thead><tbody>${t.confusion.map((row,i)=>`<tr><th>${esc(labels[i])}</th>${row.map((v,j)=>`<td style="background:${v?(i===j?'#16372b':'#3b202b'):'#0e161b'}">${v}</td>`).join('')}</tr>`).join('')}</tbody></table></div></details>`;
+}
+on('train','click',async()=>{const job=await post('/train',{dataset:$('model-dataset').value});state.lastJob=job.id;notify('Training queued. Models are fitted only on the training split.');await poll()});
+on('csv-form','submit',async e=>{e.preventDefault();const data=new FormData();data.append('file',$('csv-file').files[0]);const r=await api('/predict-csv/'+encodeURIComponent($('csv-model').value),{method:'POST',body:data});$('csv-result').innerHTML=`<p>Classified ${r.rows} rows. <a href="/api/records/${r.record_id}/export">Download all predictions</a></p><div class="table-wrap"><table><thead><tr><th>Row</th><th>Prediction</th><th>Probability</th></tr></thead><tbody>${r.predictions.slice(0,20).map((p,i)=>`<tr><td>${i+1}</td><td>${esc(p.prediction)}</td><td>${pct(p.confidence)}</td></tr>`).join('')}</tbody></table></div>`;notify('CSV classification complete.')});
 async function loadCaptures(){state.captures=await api('/captures');const choices=state.captures.map(c=>[c.id,`${c.name} · ${c.label||'unlabelled'}`]);options('capture',choices);$('capture-list').innerHTML=state.captures.map(c=>`<div><strong>${esc(c.name)}</strong> <a href="/api/captures/${c.id}/download">Download PCAP</a><p class="label-info">${c.packets?.toLocaleString()??'Unknown'} supported packets · ${c.skipped} skipped · ${esc(c.label||'No evaluation label')}</p></div>`).join('')}
 on('upload-form','submit',async e=>{e.preventDefault();const data=new FormData();data.append('file',$('pcap-file').files[0]);const label=$('capture-label').value.trim();await api('/captures'+(label?'?label='+encodeURIComponent(label):''),{method:'POST',body:data});await loadCaptures();notify('Capture imported. Select Imported PCAP in Network lab to analyze it.')});
-async function loadDatasets(){state.datasets=await api('/datasets');renderDatasets();}
+async function loadDatasets(){state.datasets=await api('/datasets');renderDatasets();options('model-dataset',state.datasets.map(d=>[d.name,d.name]),'cicids2017');renderModels();}
 function navigate(){
  const requested=location.hash.slice(1)||'network';
- const page=['network','data'].includes(requested)?requested:'network';
+ const page=['network','models','data'].includes(requested)?requested:'network';
  if(page!==requested)history.replaceState(null,'',location.pathname+location.search+'#network');
  document.querySelectorAll('.page').forEach(p=>p.hidden=p.id!==page);
  document.querySelectorAll('[data-page]').forEach(a=>a.classList.toggle('active',a.dataset.page===page));
- const text=page==='data'?['Data & captures','Start with the evidence.','Inspect training data and bring your own packet captures.']:['Network lab','Network command center.','Send a scenario, inspect the evidence, and follow the decision.'];
+ const text=page==='models'?['Models & training','Evidence before confidence.','Inspect model performance, class support, and dataset provenance.']:page==='data'?['Data & captures','Start with the evidence.','Inspect training data and bring your own packet captures.']:['Network lab','Network command center.','Send a scenario, inspect the evidence, and follow the decision.'];
  $('page-label').textContent=text[0];$('heading').textContent=text[1];$('page-description').textContent=text[2];
 }
 window.addEventListener('hashchange',navigate);
@@ -91,7 +105,7 @@ async function poll(){
   const active=jobs.find(j=>['running','queued'].includes(j.status));const latest=active||jobs[0];
   $('job-panel').hidden=!latest;$('job-panel').classList.toggle('error',!!latest&&['failed','interrupted'].includes(latest.status));
   if(latest)$('job-panel').innerHTML=`<strong>${esc(latest.kind)} · ${esc(latest.status)}</strong>${esc(latest.message)}${latest.result?.run_id?` <button class="quiet" data-run="${latest.result.run_id}">Inspect run</button>`:''}`;
-  $('send').disabled=!!active;
+  $('send').disabled=!!active;$('train').disabled=!!active;
   state.decisions=await api('/decisions');renderDecisions();
   for(const j of jobs){if(state.seen.has(j.id)||!['complete','failed','interrupted'].includes(j.status))continue;state.seen.add(j.id);if(j.id===state.lastJob){if(j.status==='complete'){notify(`${j.kind} complete.`);if(j.kind==='training')await loadModels();if(j.result?.live_run_id){await loadCaptures();const r=await api('/records/'+j.result.live_run_id);showLiveResult(r)}}else notify(j.message,true)}}
  }catch(error){notify('Service unavailable: '+error.message,true)}finally{state.polling=false}
