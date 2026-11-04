@@ -3,7 +3,7 @@ const $ = id => document.getElementById(id);
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const pct = value => value == null ? '—' : `${(value * 100).toFixed(1)}%`;
 const fixed = (v,n=3) => v == null ? '—' : Number(v).toFixed(n);
-const state = {models:[],peers:[],captures:[],decisions:[],source:'fixture',selected:'192.168.56.11',jobs:[],lastJob:null,seen:new Set(),polling:false};
+const state = {models:[],datasets:[],peers:[],captures:[],decisions:[],source:'fixture',selected:'192.168.56.11',jobs:[],lastJob:null,seen:new Set(),polling:false};
 const names={'192.168.56.11':'Atlas','192.168.56.12':'Birch','192.168.56.13':'Cedar','192.168.56.14':'Delta'};
 async function api(path, options={}) {
   const response=await fetch('/api'+path,options);
@@ -68,17 +68,20 @@ async function loadModels(){
  $('model-count').textContent=`${state.models.length} trained artifacts`;
  refreshModelChoices();
 }
-async function loadCaptures(){
- state.captures=await api('/captures');
- options('capture',state.captures.map(c=>[c.id,`${c.name} · ${c.label||'unlabelled'}`]));
+function renderDatasets(){
+ $('dataset-list').innerHTML=state.datasets.map(d=>`<section class="panel dataset"><h2>${esc(d.name)} <span class="tag ${d.synthetic?'warn':''}">${d.synthetic?'Synthetic validation':d.name==='cicids2017'?'Corrected CICIDS2017':'Packet corpus'}</span></h2><p>${d.rows.toLocaleString()} prepared rows · ${d.features.length} features · ${esc(d.observation)} · ${d.live_compatible?'Packet compatible':'CSV benchmark only'}</p><p class="label-info">${esc(d.split_policy)}</p><p class="hash">SHA256 ${esc(d.sha256)}</p>${d.source.startsWith('https://')?`<a class="source-link" href="${esc(d.source)}" target="_blank" rel="noopener">Dataset source</a>`:`<p class="label-info">${esc(d.source)}</p>`}<ul class="warning-list">${d.warnings.map(w=>`<li>${esc(w)}</li>`).join('')}</ul><details><summary>Class counts by split</summary><div class="table-wrap"><table><thead><tr><th>Class</th><th>Train</th><th>Validation</th><th>Test</th></tr></thead><tbody>${[...new Set(Object.values(d.counts).flatMap(c=>Object.keys(c)))].map(c=>`<tr><td>${esc(c)}</td><td>${d.counts.train?.[c]||0}</td><td>${d.counts.validation?.[c]||0}</td><td>${d.counts.test?.[c]||0}</td></tr>`).join('')}</tbody></table></div></details></section>`).join('');
 }
+async function loadCaptures(){state.captures=await api('/captures');const choices=state.captures.map(c=>[c.id,`${c.name} · ${c.label||'unlabelled'}`]);options('capture',choices);$('capture-list').innerHTML=state.captures.map(c=>`<div><strong>${esc(c.name)}</strong> <a href="/api/captures/${c.id}/download">Download PCAP</a><p class="label-info">${c.packets?.toLocaleString()??'Unknown'} supported packets · ${c.skipped} skipped · ${esc(c.label||'No evaluation label')}</p></div>`).join('')}
+on('upload-form','submit',async e=>{e.preventDefault();const data=new FormData();data.append('file',$('pcap-file').files[0]);const label=$('capture-label').value.trim();await api('/captures'+(label?'?label='+encodeURIComponent(label):''),{method:'POST',body:data});await loadCaptures();notify('Capture imported. Select Imported PCAP in Network lab to analyze it.')});
+async function loadDatasets(){state.datasets=await api('/datasets');renderDatasets();}
 function navigate(){
- if(location.hash&&location.hash!=='#network')history.replaceState(null,'',location.pathname+location.search+'#network');
- $('network').hidden=false;
- document.querySelectorAll('[data-page]').forEach(a=>a.classList.toggle('active',a.dataset.page==='network'));
- $('page-label').textContent='Network lab';
- $('heading').textContent='Network command center.';
- $('page-description').textContent='Send a scenario, inspect the evidence, and follow the decision.';
+ const requested=location.hash.slice(1)||'network';
+ const page=['network','data'].includes(requested)?requested:'network';
+ if(page!==requested)history.replaceState(null,'',location.pathname+location.search+'#network');
+ document.querySelectorAll('.page').forEach(p=>p.hidden=p.id!==page);
+ document.querySelectorAll('[data-page]').forEach(a=>a.classList.toggle('active',a.dataset.page===page));
+ const text=page==='data'?['Data & captures','Start with the evidence.','Inspect training data and bring your own packet captures.']:['Network lab','Network command center.','Send a scenario, inspect the evidence, and follow the decision.'];
+ $('page-label').textContent=text[0];$('heading').textContent=text[1];$('page-description').textContent=text[2];
 }
 window.addEventListener('hashchange',navigate);
 async function poll(){
@@ -94,7 +97,7 @@ async function poll(){
  }catch(error){notify('Service unavailable: '+error.message,true)}finally{state.polling=false}
 }
 $('job-panel').addEventListener('click',async e=>{const b=e.target.closest('[data-run]');if(!b)return;try{const r=await api('/records/'+b.dataset.run);showDialog('Packet analysis result',`<div class="metric-strip"><div><strong>${r.packets_observed}/${r.packets_original}</strong><span>Packets observed</span></div><div><strong>${r.flows_invisible}</strong><span>Completely invisible flows</span></div><div><strong>${pct(r.actual_loss)}</strong><span>Measured loss</span></div></div><p>${esc(r.enforcement)}</p><p class="label-info">Ground truth: ${esc(r.ground_truth||'unknown')} · class recall ${pct(r.end_to_end_class_recall)} · attack recall ${pct(r.end_to_end_attack_recall)}</p><div class="export-links"><a href="/api/records/${r.id}/export">Run JSON</a><a href="/api/runs/${r.id}/flows.csv">Flow CSV</a>${r.pcap_available?`<a href="/api/runs/${r.id}/capture.pcap">Original fixture PCAP</a>`:''}</div>`)}catch(err){notify(err.message,true)}});
-(async()=>{navigate();try{await Promise.all([loadModels(),loadCaptures()]);state.peers=await api('/peers');setSource(state.peers.some(p=>p.online)&&state.models.some(m=>!m.synthetic&&m.prefix)?'live':'fixture');const initial=await api('/status');initial.jobs.forEach(j=>state.seen.add(j.id));await poll();setInterval(poll,1800)}catch(error){notify(error.message,true)}})();
+(async()=>{navigate();try{await Promise.all([loadModels(),loadCaptures(),loadDatasets()]);state.peers=await api('/peers');setSource(state.peers.some(p=>p.online)&&state.models.some(m=>!m.synthetic&&m.prefix)?'live':'fixture');const initial=await api('/status');initial.jobs.forEach(j=>state.seen.add(j.id));await poll();setInterval(poll,1800)}catch(error){notify(error.message,true)}})();
 function showLiveResult(r){
  const counters=r.destination_counters||{};
  const firewall=counters.firewall?.nftables||[];
@@ -117,7 +120,7 @@ function renderCaptureInfo(){
  $('topology-sub').textContent='Read from the capture, not the configured VM inventory';
  $('connection-summary').textContent='Offline capture analysis';
  $('peer-legend').textContent='No live connection implied';
- $('capture-summary').innerHTML=capture?`<h3>${esc(capture.name)}</h3><p>${capture.packets??'Unknown'} supported packets · ${esc(capture.label||'Unlabelled')} ground truth</p><p class="label-info">${esc(capture.capture_point||'Imported file')}</p>${capture.endpoints?.length?`<table><thead><tr><th>Observed IP address</th></tr></thead><tbody>${capture.endpoints.map(ip=>`<tr><td>${esc(ip)}</td></tr>`).join('')}</tbody></table>`:'<p>No endpoint inventory stored for this older capture.</p>'}`:'<div class="empty">No saved captures are available. Run live VM traffic to create a capture.</div>';
+ $('capture-summary').innerHTML=capture?`<h3>${esc(capture.name)}</h3><p>${capture.packets??'Unknown'} supported packets · ${esc(capture.label||'Unlabelled')} ground truth</p><p class="label-info">${esc(capture.capture_point||'Imported file')}</p>${capture.endpoints?.length?`<table><thead><tr><th>Observed IP address</th></tr></thead><tbody>${capture.endpoints.map(ip=>`<tr><td>${esc(ip)}</td></tr>`).join('')}</tbody></table>`:'<p>No endpoint inventory stored for this older capture.</p>'}`:'<div class="empty">Import a PCAP in Data & captures, then select it here.</div>';
 }
 on('capture','change',renderCaptureInfo);
 
