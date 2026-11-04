@@ -1,6 +1,7 @@
 import json
 import time
 import warnings
+import resource
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -88,6 +89,36 @@ class TabMClassifier(ClassifierMixin, BaseEstimator):
         return self.classes_[self.predict_proba(x).argmax(1)]
 
 
+class TemperatureClassifier(ClassifierMixin, BaseEstimator):
+    """One validation-fitted scalar, retaining all training class columns."""
+
+    def __init__(self, estimator):
+        self.estimator = estimator
+
+    def fit(self, x, y):
+        from scipy.optimize import minimize_scalar
+
+        self.classes_ = self.estimator.classes_
+        logp = np.log(np.clip(self.estimator.predict_proba(x), 1e-12, 1))
+        from scipy.special import logsumexp
+
+        def objective(log_temperature):
+            scaled = logp / np.exp(log_temperature)
+            return float((-scaled[np.arange(len(y)), y] + logsumexp(scaled, axis=1)).mean())
+
+        optimum = minimize_scalar(objective, bounds=(-3, 3), method="bounded")
+        self.temperature_ = float(np.exp(optimum.x))
+        return self
+
+    def predict_proba(self, x):
+        from scipy.special import softmax
+
+        return softmax(np.log(np.clip(self.estimator.predict_proba(x), 1e-12, 1)) / self.temperature_, axis=1)
+
+    def predict(self, x):
+        return self.classes_[self.predict_proba(x).argmax(1)]
+
+
 def metrics(truth, predicted, labels=None):
     labels = sorted(set(truth) | set(predicted)) if labels is None else labels
     report = classification_report(truth, predicted, labels=labels, output_dict=True, zero_division=0)
@@ -114,7 +145,7 @@ def metrics(truth, predicted, labels=None):
     }
 
 
-def train(dataset="fixture_completed", algorithms=None, progress=lambda _: None, seed=42):
+def train(dataset="fixture_completed", algorithms=None, progress=lambda _: None, seed=42, study=False):
     meta = json.loads((DATA / f"{dataset}.json").read_text())
     path = DATA / f"{dataset}.csv"
     if fingerprint(path) != meta["sha256"]:
@@ -157,26 +188,78 @@ def train(dataset="fixture_completed", algorithms=None, progress=lambda _: None,
         tree_method="hist",
         eval_metric="mlogloss",
     )
+    grids = {
+        "logistic": [{"C": c} for c in [0.1, 1, 10]],
+        "rf": [{"max_depth": d} for d in [8, 16, None]],
+        "extra": [{"min_samples_leaf": n} for n in [1, 2, 5]],
+        "xgboost": [{"max_depth": d} for d in [3, 5, 7]],
+        "mlp": [{"alpha": a} for a in [0.0001, 0.01, 0.1]],
+        "tabm": [{"epochs": e} for e in [20, 35, 50]],
+    }
     saved = []
     for name in algorithms or list(MODEL_NAMES):
         progress(f"Training {MODEL_NAMES[name]} on {dataset}")
         start = time.perf_counter()
-        pipeline = Pipeline(
-            [
-                ("impute", SimpleImputer(strategy="median", keep_empty_features=True)),
-                ("log", FunctionTransformer(signed_log)),
-                ("scale", StandardScaler()),
-                ("classifier", classifiers[name]()),
-            ]
-        )
+
+        def make_pipeline(params):
+            classifier = classifiers[name]().set_params(**params)
+            return Pipeline(
+                [
+                    ("impute", SimpleImputer(strategy="median", keep_empty_features=True)),
+                    ("log", FunctionTransformer(signed_log)),
+                    ("scale", StandardScaler()),
+                    ("classifier", classifier),
+                ]
+            )
+
         kwargs = (
             {"classifier__sample_weight": compute_sample_weight("balanced", y)}
             if name in {"xgboost", "mlp"}
             else {}
         )
+        cpu_start = time.process_time()
+        searches = []
+        selected = {}
+        calibration_ids = numeric.index[valid_mask]
         with warnings.catch_warnings(record=True) as caught, threadpool_limits(limits=4):
-            pipeline.fit(x, y, **kwargs)
+            if study:
+                from sklearn.model_selection import GroupShuffleSplit
+
+                validation = frame.loc[valid_mask]
+                if validation.group.nunique() < 2:
+                    raise ValueError("Tuning needs multiple independent validation groups")
+                tune_idx, cal_idx = next(
+                    GroupShuffleSplit(n_splits=1, test_size=0.5, random_state=seed).split(
+                        validation, groups=validation.group
+                    )
+                )
+                tune_ids, calibration_ids = validation.index[tune_idx], validation.index[cal_idx]
+                best_score = -1
+                for params in grids[name]:
+                    candidate = make_pipeline(params)
+                    candidate.fit(x, y, **kwargs)
+                    pp = encoder.inverse_transform(candidate.predict_proba(numeric.loc[tune_ids]).argmax(1))
+                    score = metrics(frame.loc[tune_ids, "label"].tolist(), pp.tolist())["macro_f1"]
+                    searches.append({"parameters": params, "validation_macro_f1": score})
+                    progress(f"{name} candidate {params}: validation F1 {score:.4f}")
+                    if score > best_score:
+                        pipeline, selected, best_score = candidate, params, score
+                # Calibration sees only a separate validation-group subset, never the held-out test.
+                cal_truth = frame.loc[calibration_ids, "label"]
+                known = cal_truth.isin(encoder.classes_)
+                calibration_ids = calibration_ids[known]
+                if len(set(cal_truth[known])) < 2:
+                    raise ValueError("Calibration partition needs two known classes")
+                raw_pipeline = pipeline
+                pipeline = TemperatureClassifier(pipeline)
+                pipeline.fit(
+                    numeric.loc[calibration_ids], encoder.transform(frame.loc[calibration_ids, "label"])
+                )
+            else:
+                pipeline = make_pipeline({})
+                pipeline.fit(x, y, **kwargs)
         training_seconds = time.perf_counter() - start
+        training_cpu_seconds = time.process_time() - cpu_start
         output = {}
         for split, mask in [("validation", valid_mask), ("test", test_mask)]:
             start = time.perf_counter()
@@ -188,15 +271,15 @@ def train(dataset="fixture_completed", algorithms=None, progress=lambda _: None,
             output[split]["inference_ms_per_flow"] = 1000 * (time.perf_counter() - start) / mask.sum()
             output[split]["unseen_classes"] = sorted(set(frame.loc[mask, "label"]) - set(encoder.classes_))
         # Select an empirical validation threshold; this is not probability calibration.
-        val_probs = pipeline.predict_proba(numeric.loc[valid_mask])
+        val_probs = pipeline.predict_proba(numeric.loc[calibration_ids])
         benign_col = list(encoder.classes_).index("BENIGN") if "BENIGN" in encoder.classes_ else None
         benign_scores = (
-            1 - val_probs[frame.loc[valid_mask, "label"].to_numpy() == "BENIGN", benign_col]
+            1 - val_probs[frame.loc[calibration_ids, "label"].to_numpy() == "BENIGN", benign_col]
             if benign_col is not None
             else []
         )
         threshold = max(0.9, float(np.quantile(benign_scores, 0.99))) if len(benign_scores) else 0.99
-        model_id = f"{dataset}--{name}"
+        model_id = f"{dataset}--{name}" + ("_tuned" if study else "")
         metadata = {
             "id": model_id,
             "name": MODEL_NAMES[name],
@@ -215,15 +298,50 @@ def train(dataset="fixture_completed", algorithms=None, progress=lambda _: None,
             "training_seconds": training_seconds,
             "dataset_sha256": meta["sha256"],
             "threshold": threshold,
-            "calibrated": False,
+            "calibrated": study,
+            "search": searches,
+            "selected_parameters": selected,
+            "search_policy": "Three candidates per algorithm; group-separated tuning and temperature calibration; test untouched"
+            if study
+            else "Fixed baseline",
+            "calibration_rows": len(calibration_ids) if study else 0,
+            "temperature": pipeline.temperature_ if study else None,
+            "training_cpu_seconds": training_cpu_seconds,
+            "process_peak_rss_mib": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024,
+            "rss_note": "Peak for the whole worker process; includes earlier models and data",
             "metrics": output,
             "warnings": meta["warnings"] + [str(w.message) for w in caught],
             "background": numeric.loc[train_mask].median().fillna(0).to_dict(),
         }
+        if study:
+            for split, mask in [("validation", valid_mask), ("test", test_mask)]:
+                probability = pipeline.predict_proba(numeric.loc[mask])
+                truth = frame.loc[mask, "label"].to_numpy()
+                known = np.isin(truth, encoder.classes_)
+                target = (truth[:, None] == encoder.classes_[None, :]).astype(float)
+                metadata["metrics"][split]["brier_definition"] = (
+                    "Sum of squared class probability errors, averaged over labels seen in training"
+                )
+                metadata["metrics"][split]["multiclass_brier"] = float(
+                    np.square(probability - target).sum(1)[known].mean()
+                )
+                conf, correct = probability.max(1), encoder.inverse_transform(probability.argmax(1)) == truth
+                ece = 0.0
+                for low in np.linspace(0, 0.9, 10):
+                    chosen = (conf >= low) & (conf < low + 0.1 if low < 0.9 else conf <= 1)
+                    if chosen.any():
+                        ece += chosen.mean() * abs(conf[chosen].mean() - correct[chosen].mean())
+                metadata["metrics"][split]["ece_10_bins"] = float(ece)
+                if split == "test":
+                    raw_probability = raw_pipeline.predict_proba(numeric.loc[mask])
+                    metadata["metrics"][split]["uncalibrated_multiclass_brier"] = float(
+                        np.square(raw_probability - target).sum(1)[known].mean()
+                    )
         bundle = {"pipeline": pipeline, "encoder": encoder, "metadata": metadata}
         temporary = MODELS / f"{model_id}.joblib.tmp"
         joblib.dump(bundle, temporary, compress=3)
         temporary.replace(MODELS / f"{model_id}.joblib")
+        metadata["artifact_mib"] = (MODELS / f"{model_id}.joblib").stat().st_size / 1024**2
         temporary_json = MODELS / f"{model_id}.json.tmp"
         temporary_json.write_text(json.dumps(metadata, indent=2))
         temporary_json.replace(MODELS / f"{model_id}.json")
@@ -262,7 +380,7 @@ def predict(bundle, records, explain=False):
                 "inference_ms": elapsed,
                 "probabilities": dict(zip(classes, map(float, probability))),
                 "threshold": metadata["threshold"],
-                "calibrated": False,
+                "calibrated": metadata.get("calibrated", False),
             }
         )
     if explain:
@@ -307,7 +425,7 @@ def explain_one(bundle, x, predicted):
         "features": [
             {
                 "feature": meta["features"][j],
-                "value": float(x.iloc[0, j]),
+                "value": float(x.iloc[0, j]) if pd.notna(x.iloc[0, j]) else None,
                 "contribution": float(values[j]),
                 "reference": float(meta["background"][meta["features"][j]]),
             }

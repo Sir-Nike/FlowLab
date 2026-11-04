@@ -80,13 +80,24 @@ def run_live(request, progress=lambda _: None):
     resolved = resolve_peers()
     src = next(p for p in resolved if p["ip"] == request["src"])
     dst = next(p for p in resolved if p["ip"] == request["dst"])
+    sources = [p for p in resolved if p["ip"] != dst["ip"]] if request["scenario"] == "DDoS" else [src]
+    source_ips = {p["ip"] for p in sources}
     bundle = load_model(request["model_id"])
     meta = bundle["metadata"]
-    if meta["schema"] != SCHEMA or not meta.get("prefix"):
+    from . import cic
+
+    cic_mode = meta["schema"] == cic.SCHEMA
+    if cic_mode and request.get("enforce"):
+        raise ValueError(
+            "CIC completed-flow models observe captured traffic; use a lab prefix model for prevention"
+        )
+    if cic_mode and not cic.available():
+        raise ValueError("Install the pinned corrected CICFlowMeter first")
+    if not cic_mode and (meta["schema"] != SCHEMA or not meta.get("prefix")):
         raise ValueError("Live prevention requires a compatible prefix model")
     if not token():
         raise ValueError("VM agents are not provisioned. Follow lab/README.md")
-    meter = FlowMeter(prefix=meta["prefix"])
+    meter = FlowMeter(prefix=meta.get("prefix"))
     decisions, blocks, observations = [], [], 0
     run_id = store.add(
         "live_run", {"request": request, "status": "running", "model_synthetic": meta["synthetic"]}
@@ -101,27 +112,33 @@ def run_live(request, progress=lambda _: None):
             return response.json()
 
         try:
-            for peer in (src, dst):
+            for peer in [*sources, dst]:
                 health = call(peer, "/health")
                 if health.get("capture") != "running":
                     raise ValueError(f"Capture is not running on {peer['name']}")
                 call(peer, "/reset", {})
-            loss_configuration = call(
-                src,
-                "/loss",
-                {"rate": request["loss_rate"], "kind": request["loss_kind"], "seed": request["seed"]},
-            )
+            loss_configurations = [
+                call(
+                    source,
+                    "/loss",
+                    {"rate": request["loss_rate"], "kind": request["loss_kind"], "seed": request["seed"]},
+                )
+                for source in sources
+            ]
+            loss_configuration = loss_configurations[0]
             duration = request.get("duration", 8)
-            call(
-                src,
-                "/scenario",
-                {
-                    "target": dst["ip"],
-                    "scenario": request["scenario"],
-                    "duration": duration,
-                    "rate": request.get("rate", 100),
-                },
-            )
+            for source in sources:
+                call(
+                    source,
+                    "/scenario",
+                    {
+                        "target": dst["ip"],
+                        "scenario": "DoS" if request["scenario"] == "DDoS" else request["scenario"],
+                        "seed": request["seed"],
+                        "duration": duration,
+                        "rate": request.get("rate", 100),
+                    },
+                )
             cursor = 0
             stop = time.monotonic() + duration + 2
             while time.monotonic() < stop:
@@ -131,10 +148,10 @@ def run_live(request, progress=lambda _: None):
                 cursor = batch["cursor"]
                 for item in batch["packets"]:
                     p = Packet(**item)
-                    if {p.src, p.dst} != {src["ip"], dst["ip"]}:
+                    if not (dst["ip"] in {p.src, p.dst} and ({p.src, p.dst} & source_ips)):
                         continue
                     observations += 1
-                    records = meter.push(p)
+                    records = [] if cic_mode else meter.push(p)
                     for flow in records:
                         decision = predict(bundle, [flow["features"]])[0]
                         enforced = False
@@ -165,6 +182,8 @@ def run_live(request, progress=lambda _: None):
                             {
                                 **flow,
                                 **decision,
+                                "prefix_observation_delay_ms": 1000 * (flow["end"] - flow["start"]),
+                                "decision_at": time.time(),
                                 "policy": action,
                                 "enforced": enforced,
                                 "synthetic": meta["synthetic"],
@@ -187,7 +206,7 @@ def run_live(request, progress=lambda _: None):
                     f"Live capture: {observations} packets; {len(decisions)} decisions; {len(blocks)} rules"
                 )
                 time.sleep(0.25)
-            for flow in meter.flush():
+            for flow in [] if cic_mode else meter.flush():
                 decision = predict(bundle, [flow["features"]])[0]
                 decisions.append(
                     store.add(
@@ -208,10 +227,11 @@ def run_live(request, progress=lambda _: None):
                     "No TCP/UDP packets were captured; verify the destination sensor before interpreting the run"
                 )
             counters = call(dst, "/counters")
-            source_counters = call(src, "/counters")
+            source_counter_list = [{"ip": p["ip"], **call(p, "/counters")} for p in sources]
+            source_counters = source_counter_list[0]
             captured = []
             for peer, point in [
-                (src, "source egress capture"),
+                *((p, "source egress capture") for p in sources),
                 (dst, "destination before input firewall"),
             ]:
                 response = c.get(peer["url"] + "/capture")
@@ -241,6 +261,25 @@ def run_live(request, progress=lambda _: None):
                     },
                 )
                 captured.append(capture["id"])
+            if cic_mode:
+                frame = cic.extract_cic(capture_path, meta["features"])
+                flows = list(cic.flow_records(frame, meta["features"]))
+                predictions = predict(bundle, [f["features"] for f in flows], explain=True)
+                for flow, decision in zip(flows, predictions):
+                    decisions.append(
+                        store.add(
+                            "decision",
+                            {
+                                **flow,
+                                **decision,
+                                "policy": "completed capture observation",
+                                "enforced": False,
+                                "synthetic": False,
+                                "run_id": run_id,
+                                "model_id": meta["id"],
+                            },
+                        )
+                    )
             store.update(
                 run_id,
                 status="complete",
@@ -249,6 +288,9 @@ def run_live(request, progress=lambda _: None):
                 blocks=blocks,
                 destination_counters=counters,
                 source_counters=source_counters,
+                source_counter_list=source_counter_list,
+                sources=sorted(source_ips),
+                loss_configurations=loss_configurations,
                 loss_configuration=loss_configuration,
                 capture_ids=captured,
                 note="Capture at destination after source egress loss; application counters measure delivery.",
@@ -258,11 +300,12 @@ def run_live(request, progress=lambda _: None):
             raise
         finally:
             # Always undo this experiment's loss and temporary rules, including on inference failure.
-            try:
-                call(src, "/stop", {})
-            except Exception:
-                pass
-            for peer in (src, dst):
+            for source in sources:
+                try:
+                    call(source, "/stop", {})
+                except Exception:
+                    pass
+            for peer in [*sources, dst]:
                 try:
                     call(peer, "/reset", {})
                 except Exception:

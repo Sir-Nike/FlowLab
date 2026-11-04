@@ -17,3 +17,6 @@ lab/inventory.json
 *.pem
 *.key
 
+tools/
+
+.chart-data-*/

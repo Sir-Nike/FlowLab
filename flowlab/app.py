@@ -88,7 +88,7 @@ def submit(kind, fn, *args):
 class ScenarioRequest(BaseModel):
     source: Literal["fixture", "capture", "live"] = "fixture"
     model_id: str
-    scenario: Literal["BENIGN", "DoS", "PortScan", "BruteForce"] = "BENIGN"
+    scenario: Literal["BENIGN", "DoS", "DDoS", "PortScan", "BruteForce"] = "BENIGN"
     src: str = "192.168.56.11"
     dst: str = "192.168.56.12"
     loss_rate: float = Field(default=0, ge=0, le=0.1, allow_inf_nan=False)
@@ -104,6 +104,8 @@ class ScenarioRequest(BaseModel):
         ips = {p["ip"] for p in PEERS}
         if self.src not in ips or self.dst not in ips or self.src == self.dst:
             raise ValueError("Choose two different lab peers")
+        if self.scenario == "DDoS" and self.source == "fixture":
+            raise ValueError("DDoS requires real VM traffic or a recorded capture")
         if self.source == "capture" and not self.capture_id:
             raise ValueError("Choose an imported capture")
         if self.enforce and self.source != "live":
@@ -145,6 +147,32 @@ def status():
         ],
         "live_runs": store.listing("live_run", 8),
     }
+
+
+@app.get("/api/research")
+def research():
+    from .config import RESULTS
+    from .cic import available
+
+    output = {"exporter_available": available()}
+    for key, filename in [
+        ("live", "live-study.json"),
+        ("transfer", "cic-transfer.json"),
+        ("complete", "research-study-ready.json"),
+    ]:
+        path = RESULTS / filename
+        output[key] = json.loads(path.read_text()) if path.exists() else None
+    return output
+
+
+@app.get("/api/research/{name}/export")
+def research_export(name: Literal["live", "transfer"]):
+    from .config import RESULTS
+
+    path = RESULTS / ("live-study.json" if name == "live" else "cic-transfer.json")
+    if not path.exists():
+        raise HTTPException(404, "Study has not produced results yet")
+    return FileResponse(path, filename=path.name)
 
 
 @app.get("/api/models")
@@ -215,7 +243,10 @@ def download_pcap(run_id: str):
 @app.post("/api/scenarios")
 def scenario(request: ScenarioRequest):
     bundle = load_model(request.model_id)
-    if not bundle["metadata"]["live_compatible"]:
+    from .cic import SCHEMA as CIC_SCHEMA, available
+
+    cic_live = request.source == "live" and bundle["metadata"]["schema"] == CIC_SCHEMA and available()
+    if not bundle["metadata"]["live_compatible"] and not cic_live:
         raise ValueError("Choose a packet-compatible model, not a CSV benchmark model")
     return submit(
         "live scenario" if request.source == "live" else "packet analysis",

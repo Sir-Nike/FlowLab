@@ -1,0 +1,585 @@
+{
+  "live_sessions": 80,
+  "transfer_captures": 10,
+  "corpus_sessions": 40,
+  "models": {
+    "logistic": {
+      "name": "Logistic Regression",
+      "baseline": {
+        "macro_f1": 0.7209252301857505,
+        "accuracy": 0.9016993847055377,
+        "false_positive_rate": 0.057766367137355584,
+        "inference_ms_per_flow": 0.026539640492224077,
+        "unseen_classes": [
+          "FTP-Patator - Attempted"
+        ],
+        "macro_definition": "Unweighted mean over classes with ground-truth support in this partition"
+      },
+      "tuned": {
+        "macro_f1": 0.7209252301857505,
+        "accuracy": 0.9016993847055377,
+        "false_positive_rate": 0.057766367137355584,
+        "inference_ms_per_flow": 0.022987221066537427,
+        "multiclass_brier": 0.11957455712099038,
+        "uncalibrated_multiclass_brier": 0.12092894463273969,
+        "ece_10_bins": 0.05650920779164405,
+        "unseen_classes": [
+          "FTP-Patator - Attempted"
+        ],
+        "macro_definition": "Unweighted mean over classes with ground-truth support in this partition"
+      },
+      "lab": {
+        "macro_f1": 0.7889705882352941,
+        "accuracy": 0.9820474460354777,
+        "false_positive_rate": 0.0,
+        "inference_ms_per_flow": 0.009989584740429694,
+        "multiclass_brier": 0.017622246708423432,
+        "uncalibrated_multiclass_brier": 0.01798014287515007,
+        "ece_10_bins": 0.0021177542538630746,
+        "unseen_classes": [],
+        "macro_definition": "Unweighted mean over classes with ground-truth support in this partition"
+      },
+      "training_seconds": 13.059279741000864,
+      "training_cpu_seconds": 86.33369212999999,
+      "artifact_mib": 0.022215843200683594,
+      "process_peak_rss_mib": 339.61328125,
+      "selected_parameters": {
+        "C": 1
+      },
+      "temperature": 1.6846539886115453
+    },
+    "rf": {
+      "name": "Random Forest",
+      "baseline": {
+        "macro_f1": 0.7999630469978349,
+        "accuracy": 0.9184002343978904,
+        "false_positive_rate": 0.005134788189987163,
+        "inference_ms_per_flow": 0.024048153677078198,
+        "unseen_classes": [
+          "FTP-Patator - Attempted"
+        ],
+        "macro_definition": "Unweighted mean over classes with ground-truth support in this partition"
+      },
+      "tuned": {
+        "macro_f1": 0.7968902217330681,
+        "accuracy": 0.9125402871374158,
+        "false_positive_rate": 0.005134788189987163,
+        "inference_ms_per_flow": 0.024409765455764,
+        "multiclass_brier": 0.0967030220916634,
+        "uncalibrated_multiclass_brier": 0.09788615130844791,
+        "ece_10_bins": 0.025464287463161636,
+        "unseen_classes": [
+          "FTP-Patator - Attempted"
+        ],
+        "macro_definition": "Unweighted mean over classes with ground-truth support in this partition"
+      },
+      "lab": {
+        "macro_f1": 0.792285155284185,
+        "accuracy": 0.9891002350929686,
+        "false_positive_rate": 0.007633587786259542,
+        "inference_ms_per_flow": 0.012089208805320965,
+        "multiclass_brier": 0.01650044455617704,
+        "uncalibrated_multiclass_brier": 0.016533018339372138,
+        "ece_10_bins": 0.005810439633592249,
+        "unseen_classes": [],
+        "macro_definition": "Unweighted mean over classes with ground-truth support in this partition"
+      },
+      "training_seconds": 5.028533724000226,
+      "training_cpu_seconds": 17.638184874000004,
+      "artifact_mib": 2.9049835205078125,
+      "process_peak_rss_mib": 385.75,
+      "selected_parameters": {
+        "max_depth": 16
+      },
+      "temperature": 1.1430940807194874
+    },
+    "xgboost": {
+      "name": "XGBoost",
+      "baseline": {
+        "macro_f1": 0.7278702304706419,
+        "accuracy": 0.9153237620861412,
+        "false_positive_rate": 0.008985879332477536,
+        "inference_ms_per_flow": 0.03011608995016809,
+        "unseen_classes": [
+          "FTP-Patator - Attempted"
+        ],
+        "macro_definition": "Unweighted mean over classes with ground-truth support in this partition"
+      },
+      "tuned": {
+        "macro_f1": 0.7278702304706419,
+        "accuracy": 0.9153237620861412,
+        "false_positive_rate": 0.008985879332477536,
+        "inference_ms_per_flow": 0.026252066949960153,
+        "multiclass_brier": 0.10620262128502406,
+        "uncalibrated_multiclass_brier": 0.11414385084280022,
+        "ece_10_bins": 0.027203093249314785,
+        "unseen_classes": [
+          "FTP-Patator - Attempted"
+        ],
+        "macro_definition": "Unweighted mean over classes with ground-truth support in this partition"
+      },
+      "lab": {
+        "macro_f1": 0.7721555647455144,
+        "accuracy": 0.9824748877965377,
+        "false_positive_rate": 0.0,
+        "inference_ms_per_flow": 0.010634360974681302,
+        "multiclass_brier": 0.019369159457119024,
+        "uncalibrated_multiclass_brier": 0.019667527448385694,
+        "ece_10_bins": 0.0058886883579327065,
+        "unseen_classes": [],
+        "macro_definition": "Unweighted mean over classes with ground-truth support in this partition"
+      },
+      "training_seconds": 17.600562419000198,
+      "training_cpu_seconds": 53.928539618,
+      "artifact_mib": 0.971928596496582,
+      "process_peak_rss_mib": 606.828125,
+      "selected_parameters": {
+        "max_depth": 5
+      },
+      "temperature": 1.2903827095566986
+    },
+    "extra": {
+      "name": "Extra Trees",
+      "baseline": {
+        "macro_f1": 0.7915561350338978,
+        "accuracy": 0.9191327278054497,
+        "false_positive_rate": 0.0025673940949935813,
+        "inference_ms_per_flow": 0.026303681218906895,
+        "unseen_classes": [
+          "FTP-Patator - Attempted"
+        ],
+        "macro_definition": "Unweighted mean over classes with ground-truth support in this partition"
+      },
+      "tuned": {
+        "macro_f1": 0.786973928540184,
+        "accuracy": 0.91444476999707,
+        "false_positive_rate": 0.01797175866495507,
+        "inference_ms_per_flow": 0.023565198798633166,
+        "multiclass_brier": 0.10264035919030419,
+        "uncalibrated_multiclass_brier": 0.10427871024620038,
+        "ece_10_bins": 0.028152539164532128,
+        "unseen_classes": [
+          "FTP-Patator - Attempted"
+        ],
+        "macro_definition": "Unweighted mean over classes with ground-truth support in this partition"
+      },
+      "lab": {
+        "macro_f1": 0.8106181007700716,
+        "accuracy": 0.9873904680487283,
+        "false_positive_rate": 0.007633587786259542,
+        "inference_ms_per_flow": 0.0148951718316581,
+        "multiclass_brier": 0.01706323142062825,
+        "uncalibrated_multiclass_brier": 0.026436078162486526,
+        "ece_10_bins": 0.0070703113566442655,
+        "unseen_classes": [],
+        "macro_definition": "Unweighted mean over classes with ground-truth support in this partition"
+      },
+      "training_seconds": 2.1036413270012417,
+      "training_cpu_seconds": 4.829818210000013,
+      "artifact_mib": 3.8275671005249023,
+      "process_peak_rss_mib": 759.859375,
+      "selected_parameters": {
+        "min_samples_leaf": 5
+      },
+      "temperature": 0.8128968531998496
+    },
+    "mlp": {
+      "name": "MLP",
+      "baseline": {
+        "macro_f1": 0.7608926375964865,
+        "accuracy": 0.897011426897158,
+        "false_positive_rate": 0.021822849807445442,
+        "inference_ms_per_flow": 0.02345484060932513,
+        "unseen_classes": [
+          "FTP-Patator - Attempted"
+        ],
+        "macro_definition": "Unweighted mean over classes with ground-truth support in this partition"
+      },
+      "tuned": {
+        "macro_f1": 0.7608926375964865,
+        "accuracy": 0.897011426897158,
+        "false_positive_rate": 0.021822849807445442,
+        "inference_ms_per_flow": 0.023766456636435757,
+        "multiclass_brier": 0.12574482046669952,
+        "uncalibrated_multiclass_brier": 0.13210629680460914,
+        "ece_10_bins": 0.04738938514377933,
+        "unseen_classes": [
+          "FTP-Patator - Attempted"
+        ],
+        "macro_definition": "Unweighted mean over classes with ground-truth support in this partition"
+      },
+      "lab": {
+        "macro_f1": 0.7679800967988981,
+        "accuracy": 0.9899551186150887,
+        "false_positive_rate": 0.030534351145038167,
+        "inference_ms_per_flow": 0.015355521265212472,
+        "multiclass_brier": 0.015173813433022954,
+        "uncalibrated_multiclass_brier": 0.04477037118348861,
+        "ece_10_bins": 0.006294358699459232,
+        "unseen_classes": [],
+        "macro_definition": "Unweighted mean over classes with ground-truth support in this partition"
+      },
+      "training_seconds": 15.402328471000146,
+      "training_cpu_seconds": 59.46041982099999,
+      "artifact_mib": 0.41488170623779297,
+      "process_peak_rss_mib": 762.734375,
+      "selected_parameters": {
+        "alpha": 0.0001
+      },
+      "temperature": 1.460962842655132
+    },
+    "tabm": {
+      "name": "TabM",
+      "baseline": {
+        "macro_f1": 0.7438944555202442,
+        "accuracy": 0.9107823029592733,
+        "false_positive_rate": 0.110397946084724,
+        "inference_ms_per_flow": 0.02464069205973517,
+        "unseen_classes": [
+          "FTP-Patator - Attempted"
+        ],
+        "macro_definition": "Unweighted mean over classes with ground-truth support in this partition"
+      },
+      "tuned": {
+        "macro_f1": 0.7438944555202442,
+        "accuracy": 0.9107823029592733,
+        "false_positive_rate": 0.110397946084724,
+        "inference_ms_per_flow": 0.02221733943752911,
+        "multiclass_brier": 0.11775427540824823,
+        "uncalibrated_multiclass_brier": 0.11766542302743103,
+        "ece_10_bins": 0.03516185563521549,
+        "unseen_classes": [
+          "FTP-Patator - Attempted"
+        ],
+        "macro_definition": "Unweighted mean over classes with ground-truth support in this partition"
+      },
+      "lab": {
+        "macro_f1": 0.767149245297589,
+        "accuracy": 0.9897413977345587,
+        "false_positive_rate": 0.03816793893129771,
+        "inference_ms_per_flow": 0.01339786129506745,
+        "multiclass_brier": 0.019535818722502703,
+        "uncalibrated_multiclass_brier": 0.022091148095446368,
+        "ece_10_bins": 0.010811427842605074,
+        "unseen_classes": [],
+        "macro_definition": "Unweighted mean over classes with ground-truth support in this partition"
+      },
+      "training_seconds": 32.21183304299848,
+      "training_cpu_seconds": 121.99249984999997,
+      "artifact_mib": 0.10094356536865234,
+      "process_peak_rss_mib": 995.27734375,
+      "selected_parameters": {
+        "epochs": 35
+      },
+      "temperature": 1.2438105164803481
+    }
+  },
+  "transfer": {
+    "logistic": {
+      "BENIGN": 0.015417457305502846,
+      "DoS": 0.0,
+      "DDoS": 0.0,
+      "PortScan": 1.0,
+      "BruteForce": 1.0
+    },
+    "rf": {
+      "BENIGN": 1.0,
+      "DoS": 0.0,
+      "DDoS": 0.0,
+      "PortScan": 1.0,
+      "BruteForce": 0.0
+    },
+    "xgboost": {
+      "BENIGN": 1.0,
+      "DoS": 0.0,
+      "DDoS": 0.0,
+      "PortScan": 1.0,
+      "BruteForce": 0.0
+    },
+    "extra": {
+      "BENIGN": 0.9919354838709677,
+      "DoS": 0.0,
+      "DDoS": 0.0,
+      "PortScan": 1.0,
+      "BruteForce": 0.0
+    },
+    "mlp": {
+      "BENIGN": 0.36859582542694497,
+      "DoS": 0.0,
+      "DDoS": 0.0,
+      "PortScan": 1.0,
+      "BruteForce": 0.20894289387140275
+    },
+    "tabm": {
+      "BENIGN": 0.8700189753320683,
+      "DoS": 0.0,
+      "DDoS": 0.0,
+      "PortScan": 1.0,
+      "BruteForce": 0.3034260916884203
+    }
+  },
+  "live": {
+    "logistic": {
+      "0": {
+        "sessions": 20,
+        "class_recall": 0.8075134930323564,
+        "benign_fpr": 0.0,
+        "attack_recall": 0.999776481675061,
+        "inference_ms": 0.025170017960622817,
+        "prefix_delay_ms": 43.557167053222656,
+        "measured_link_loss": 0
+      },
+      "0.01": {
+        "sessions": 20,
+        "class_recall": 0.7998352105638799,
+        "benign_fpr": 0.0,
+        "attack_recall": 0.9988019497127862,
+        "inference_ms": 0.02720632435796565,
+        "prefix_delay_ms": 43.600332736968994,
+        "measured_link_loss": 0.013780743594330092
+      },
+      "0.05": {
+        "sessions": 20,
+        "class_recall": 0.8000304174383122,
+        "benign_fpr": 0.01282051282051282,
+        "attack_recall": 0.9917326697425382,
+        "inference_ms": 0.03297330900230957,
+        "prefix_delay_ms": 44.02479529380798,
+        "measured_link_loss": 0.0772492125267028
+      },
+      "0.1": {
+        "sessions": 20,
+        "class_recall": 0.7821477089069078,
+        "benign_fpr": 0.0546875,
+        "attack_recall": 0.9861570809342046,
+        "inference_ms": 0.032442608963234115,
+        "prefix_delay_ms": 45.75299024581909,
+        "measured_link_loss": 0.10624070625201702
+      }
+    },
+    "rf": {
+      "0": {
+        "sessions": 20,
+        "class_recall": 0.7874411302982731,
+        "benign_fpr": 0.00510204081632653,
+        "attack_recall": 1.0,
+        "inference_ms": 0.3719064850376286,
+        "prefix_delay_ms": 43.557167053222656,
+        "measured_link_loss": 0
+      },
+      "0.01": {
+        "sessions": 20,
+        "class_recall": 0.8151098901098901,
+        "benign_fpr": 0.0,
+        "attack_recall": 0.9955357142857143,
+        "inference_ms": 0.38945537219465665,
+        "prefix_delay_ms": 43.600332736968994,
+        "measured_link_loss": 0.013780743594330092
+      },
+      "0.05": {
+        "sessions": 20,
+        "class_recall": 0.7931821814190235,
+        "benign_fpr": 0.04556479556479556,
+        "attack_recall": 0.9948778195488722,
+        "inference_ms": 0.4596872513461894,
+        "prefix_delay_ms": 44.02479529380798,
+        "measured_link_loss": 0.0772492125267028
+      },
+      "0.1": {
+        "sessions": 20,
+        "class_recall": 0.801269764957265,
+        "benign_fpr": 0.051215277777777776,
+        "attack_recall": 0.9991666666666666,
+        "inference_ms": 0.4770531835689955,
+        "prefix_delay_ms": 45.75299024581909,
+        "measured_link_loss": 0.10624070625201702
+      }
+    },
+    "xgboost": {
+      "0": {
+        "sessions": 20,
+        "class_recall": 0.8179487179487179,
+        "benign_fpr": 0.0,
+        "attack_recall": 1.0,
+        "inference_ms": 0.035394327253070866,
+        "prefix_delay_ms": 43.557167053222656,
+        "measured_link_loss": 0
+      },
+      "0.01": {
+        "sessions": 20,
+        "class_recall": 0.8062169312169312,
+        "benign_fpr": 0.0,
+        "attack_recall": 1.0,
+        "inference_ms": 0.03643336551830543,
+        "prefix_delay_ms": 43.600332736968994,
+        "measured_link_loss": 0.013780743594330092
+      },
+      "0.05": {
+        "sessions": 20,
+        "class_recall": 0.7868568010936432,
+        "benign_fpr": 0.00641025641025641,
+        "attack_recall": 0.9954761904761905,
+        "inference_ms": 0.04071532494099868,
+        "prefix_delay_ms": 44.02479529380798,
+        "measured_link_loss": 0.0772492125267028
+      },
+      "0.1": {
+        "sessions": 20,
+        "class_recall": 0.8129791666666667,
+        "benign_fpr": 0.051215277777777776,
+        "attack_recall": 0.9958333333333333,
+        "inference_ms": 0.04469557901511288,
+        "prefix_delay_ms": 45.75299024581909,
+        "measured_link_loss": 0.10624070625201702
+      }
+    },
+    "extra": {
+      "0": {
+        "sessions": 20,
+        "class_recall": 0.800261643118786,
+        "benign_fpr": 0.00510204081632653,
+        "attack_recall": 1.0,
+        "inference_ms": 0.3584642067250076,
+        "prefix_delay_ms": 43.557167053222656,
+        "measured_link_loss": 0
+      },
+      "0.01": {
+        "sessions": 20,
+        "class_recall": 0.8034595034595035,
+        "benign_fpr": 0.0,
+        "attack_recall": 0.9955357142857143,
+        "inference_ms": 0.3840329268498077,
+        "prefix_delay_ms": 43.600332736968994,
+        "measured_link_loss": 0.013780743594330092
+      },
+      "0.05": {
+        "sessions": 20,
+        "class_recall": 0.7750434585434586,
+        "benign_fpr": 0.04556479556479556,
+        "attack_recall": 0.9955357142857143,
+        "inference_ms": 0.44031787071575373,
+        "prefix_delay_ms": 44.02479529380798,
+        "measured_link_loss": 0.0772492125267028
+      },
+      "0.1": {
+        "sessions": 20,
+        "class_recall": 0.7966141381766382,
+        "benign_fpr": 0.035590277777777776,
+        "attack_recall": 0.9958333333333333,
+        "inference_ms": 0.46280405885209047,
+        "prefix_delay_ms": 45.75299024581909,
+        "measured_link_loss": 0.10624070625201702
+      }
+    },
+    "mlp": {
+      "0": {
+        "sessions": 20,
+        "class_recall": 0.7911706669039331,
+        "benign_fpr": 0.04213342945874002,
+        "attack_recall": 0.9994966909946015,
+        "inference_ms": 0.01956134691144779,
+        "prefix_delay_ms": 43.557167053222656,
+        "measured_link_loss": 0
+      },
+      "0.01": {
+        "sessions": 20,
+        "class_recall": 0.790401012573467,
+        "benign_fpr": 0.043202735983810414,
+        "attack_recall": 0.9943376639985005,
+        "inference_ms": 0.024124674898478565,
+        "prefix_delay_ms": 43.600332736968994,
+        "measured_link_loss": 0.013780743594330092
+      },
+      "0.05": {
+        "sessions": 20,
+        "class_recall": 0.7813801267485478,
+        "benign_fpr": 0.058385308385308386,
+        "attack_recall": 0.9868571998177261,
+        "inference_ms": 0.027247188690583537,
+        "prefix_delay_ms": 44.02479529380798,
+        "measured_link_loss": 0.0772492125267028
+      },
+      "0.1": {
+        "sessions": 20,
+        "class_recall": 0.7648173611031828,
+        "benign_fpr": 0.11279616013071896,
+        "attack_recall": 0.9842207414116582,
+        "inference_ms": 0.02662243859540271,
+        "prefix_delay_ms": 45.75299024581909,
+        "measured_link_loss": 0.10624070625201702
+      }
+    },
+    "tabm": {
+      "0": {
+        "sessions": 20,
+        "class_recall": 0.7903290734006191,
+        "benign_fpr": 0.04723547027506655,
+        "attack_recall": 0.9997202093195404,
+        "inference_ms": 0.03050712685094965,
+        "prefix_delay_ms": 43.557167053222656,
+        "measured_link_loss": 0
+      },
+      "0.01": {
+        "sessions": 20,
+        "class_recall": 0.7889771191884337,
+        "benign_fpr": 0.04863751859250607,
+        "attack_recall": 0.993916492919383,
+        "inference_ms": 0.03367096050208719,
+        "prefix_delay_ms": 43.600332736968994,
+        "measured_link_loss": 0.013780743594330092
+      },
+      "0.05": {
+        "sessions": 20,
+        "class_recall": 0.7694230117914328,
+        "benign_fpr": 0.10395010395010396,
+        "attack_recall": 0.984132632718159,
+        "inference_ms": 0.038546389727055555,
+        "prefix_delay_ms": 44.02479529380798,
+        "measured_link_loss": 0.0772492125267028
+      },
+      "0.1": {
+        "sessions": 20,
+        "class_recall": 0.7522951597273229,
+        "benign_fpr": 0.11279616013071896,
+        "attack_recall": 0.9706513230251665,
+        "inference_ms": 0.0402063158805028,
+        "prefix_delay_ms": 45.75299024581909,
+        "measured_link_loss": 0.10624070625201702
+      }
+    }
+  },
+  "exporter_commit": "55f60addd21ada7635a79ee3c596a389756552a6",
+  "model_artifacts": {
+    "logistic": {
+      "id": "extended_prefix10--logistic_tuned",
+      "dataset_sha256": "c8390cd08ba6633ea04a00702d085c92f5357d1ea88fe0958d0ee57d20ec6d0b",
+      "artifact_sha256": "6ee806abbac8fcd0eb55c14f2bf60c2a6e254ba26a603155959006b6799d8d6b"
+    },
+    "rf": {
+      "id": "extended_prefix10--rf_tuned",
+      "dataset_sha256": "c8390cd08ba6633ea04a00702d085c92f5357d1ea88fe0958d0ee57d20ec6d0b",
+      "artifact_sha256": "8621ec7a37ee54a8a961405feaba32d10730634e0988d5c33ff55f066a5cb764"
+    },
+    "xgboost": {
+      "id": "extended_prefix10--xgboost_tuned",
+      "dataset_sha256": "c8390cd08ba6633ea04a00702d085c92f5357d1ea88fe0958d0ee57d20ec6d0b",
+      "artifact_sha256": "80a9f454fcd24cec6e8c6986facadd4f31be4ae9cc3656f2758034cad95c8c6c"
+    },
+    "extra": {
+      "id": "extended_prefix10--extra_tuned",
+      "dataset_sha256": "c8390cd08ba6633ea04a00702d085c92f5357d1ea88fe0958d0ee57d20ec6d0b",
+      "artifact_sha256": "a0f0394a755a48d827b2d1b20794a436301d6c0437f17b8e17daab790aaf387b"
+    },
+    "mlp": {
+      "id": "extended_prefix10--mlp_tuned",
+      "dataset_sha256": "c8390cd08ba6633ea04a00702d085c92f5357d1ea88fe0958d0ee57d20ec6d0b",
+      "artifact_sha256": "df3958abbe7f740ab41621c111e134f94b02bfeba241ef6b5dc0182610054ee2"
+    },
+    "tabm": {
+      "id": "extended_prefix10--tabm_tuned",
+      "dataset_sha256": "c8390cd08ba6633ea04a00702d085c92f5357d1ea88fe0958d0ee57d20ec6d0b",
+      "artifact_sha256": "25a3008f5070b1299d0c905388ce619e810f7d174977a6d330e13f131a669047"
+    }
+  },
+  "corpus_manifest_sha256": "0560553240a13e8b9491f2d3f37017294a2110cc9bffb5ef4c7c99a3e9328a19"
+}

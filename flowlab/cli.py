@@ -25,6 +25,11 @@ def main():
     pcaps.add_argument("--prefix", type=int)
     training = commands.add_parser("train")
     training.add_argument("dataset")
+    training.add_argument(
+        "--study",
+        action="store_true",
+        help="Three candidates plus disjoint validation-group temperature calibration",
+    )
     training.add_argument("--models", nargs="+", default=None)
     matrix = commands.add_parser("experiment")
     matrix.add_argument("--dataset", default="fixture_completed")
@@ -81,7 +86,7 @@ def main():
     elif args.command == "train":
         from .ml import train
 
-        train(args.dataset, args.models, progress=print)
+        train(args.dataset, args.models, progress=print, study=args.study)
     elif args.command == "experiment":
         from .experiments import matrix
         from .ml import MODEL_NAMES

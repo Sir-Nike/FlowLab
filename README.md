@@ -16,8 +16,8 @@ headless startup. Use `--port 8766` if the default port is occupied. The app bin
 only to loopback and rejects cross-origin writes.
 
 The current workspace already has corrected CICIDS2017 data, prepared splits,
-and 30 trained artifacts: six CICIDS CSV models, twelve real VM packet models
-(completed and prefix), and twelve synthetic fixture models. The four KVM guests
+and 54 trained artifacts, including CICIDS baselines and tuned models, real VM
+completed and prefix models, and clearly marked synthetic fixtures. The four KVM guests
 are provisioned and verified. The startup script starts this project’s existing
 guests if they are shut off, then opens the local dashboard. Runtime data and models are excluded
 from source control; retain this workspace or regenerate them as described below.
@@ -47,11 +47,12 @@ capture sessions, completed and prefix models, and 576 held-out capture-loss
 comparisons. See [measured results](docs/RESULTS.md) for actual scores and limits.
 
 The default live model is trained on controlled real VM captures. The synthetic
-fixture models remain explicitly labelled and separate. The corrected CICIDS
-CSV classifiers use their own exporter schema and are deliberately unavailable
-for incompatible packet inference. Direct CICIDS-to-live transfer has not been
-validated. The live authentication scenario is a toy failing endpoint, not an
-SSH/FTP exploit; single-source UDP load is DoS, not DDoS.
+fixture models remain explicitly labelled and separate. Corrected CICIDS models now classify completed VM captures through the pinned
+authors’ 80-feature exporter. The held-out transfer test exposes substantial
+domain shift; matching features does not guarantee recognition. CICIDS models
+observe completed captures and do not offer early blocking. The extended lab
+also includes three-source DDoS and real HTTP credential verification; it does
+not reproduce SSH/FTP exploits. See the extended study below.
 
 Host tooling is already installed here. On a fresh machine, follow
 [lab/README.md](lab/README.md). No host administrator password is stored or
@@ -104,8 +105,9 @@ classes lack support in particular splits, and two classes are absent from the
 training partition. The UI reports that limitation rather than moving examples
 to make the scores look better.
 
-The default six architectures have fixed, modest hyperparameters. They have not
-received equal-budget hyperparameter searches. MLP and TabM use fixed iteration
+The original six baseline architectures use fixed, modest hyperparameters.
+The new `--study` mode compares three candidates per model, then calibrates on
+a separate validation-group subset; this is equal candidate count, not equal CPU time. MLP and TabM use fixed iteration
 budgets; a convergence warning is retained in metadata if applicable. Validation
 sets choose an empirical attack-score threshold from benign scores; probabilities
 are **not calibrated**, and threshold selection does not guarantee production FPR.
@@ -211,3 +213,44 @@ executed separately; unit tests alone cannot verify a virtual switch or firewall
 Dataset source: [Liu et al. corrected CICIDS2017](https://intrusion-detection.distrinet-research.be/CNS2022/).
 CICIDS2017 attribution: [Canadian Institute for Cybersecurity](https://www.unb.ca/cic/datasets/ids-2017.html).
 Retain the dataset's original terms and attribution when redistributing derived data.
+
+## Extended research study
+
+The completed study adds 40 longer and varied VM sessions, rotating sources and
+receivers, three-source DDoS, and actual HTTP password verification. Ten new
+held-out captures test CICIDS transfer. Eighty fresh NetEm sessions cover five
+scenarios, both loss patterns, all four rates and two repeats. Each trace is
+shared by six tuned prefix models, producing 480 model evaluations.
+
+The dashboard’s **Loss experiments → Extended research study** shows live-study
+and CICIDS transfer results, including failed detection. Network controls now
+include duration and traffic rate. CICIDS completed-capture mode disables blocking.
+Tuned models show their calibration and resource metadata separately from baselines.
+
+```bash
+# Linux local build of the authors’ exact July 2022 corrected exporter.
+.venv/bin/python scripts/setup_cicflowmeter.py
+
+# Recollect and train extended captures; completed sessions are checkpointed.
+.venv/bin/python scripts/collect_extended.py
+
+# Tune/calibrate, evaluate transfer, then run the 80-session live matrix.
+.venv/bin/python scripts/research_study.py
+
+# Independent-process CPU, memory, single-flow latency and batch throughput.
+.venv/bin/python scripts/benchmark_models.py
+.venv/bin/python scripts/summarize_research.py
+```
+
+Run collection and the live study sequentially; they control the same VMs.
+Do not treat seed requests as applied on guests whose `tc` lacks seed support.
+The study records actual loss and keeps classification separate from enforcement.
+The current flow-only models have no count of coordinated source machines;
+DoS versus DDoS confusion is part of the reported results.
+
+Outputs: [final report](docs/FlowLab_Final_Report.docx),
+[presentation](docs/FlowLab_Project_Presentation.pptx),
+[compact measured summary](docs/STUDY_SUMMARY.json).
+The original [literature review](docs/IDS_Literature_Review_and_Project_Plan.docx)
+remains available. Full captures, model artifacts and run JSON stay local in
+`data`, `models` and `results`; they are not committed to GitHub.

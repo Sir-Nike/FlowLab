@@ -2,6 +2,9 @@
 
 4 November 2026
 
+The first sections preserve the initial baseline study. The extended study below
+supersedes its earlier feature-bridge and scenario limitations.
+
 The software, four real KVM guests, packet capture, inference and connection enforcement were exercised locally. These are initial controlled-lab measurements, not a claim of production security or a full reproduction of every paper in the literature review.
 
 ## Corrected CICIDS2017 benchmark
@@ -118,3 +121,48 @@ capture-loss experiments are seeded.
 The final Python regression suite passed 17 tests. Shell syntax and JavaScript
 syntax checks passed. The dark dashboard was inspected at desktop and narrow
 mobile widths.
+
+## Extended study completed
+
+Forty new labelled VM sessions support completed and prefix models, three-source
+DDoS, real HTTP credential checking and more varied traffic. Three candidates per
+algorithm are selected on one validation-group subset; temperature calibration
+uses another. Baseline and tuned artifacts are retained separately.
+
+The corrected authors’ exporter at commit `55f60addd21ada7635a79ee3c596a389756552a6`
+produces all 80 CICIDS features. CICIDS models now classify completed VM captures;
+this mode refuses early enforcement. Ten held-out captures test transfer.
+Random Forest recognized lab scans but missed UDP load and HTTP guessing.
+This failure is retained rather than relabelled as successful generalization.
+
+| Model | Expanded prefix test macro F1 | Live class recall at 0% loss | Live class recall at 10% loss | Benign FPR at 10% loss |
+| --- | ---: | ---: | ---: | ---: |
+| Logistic Regression | 0.7890 | 0.8075 | 0.7821 | 0.0547 |
+| Random Forest | 0.7923 | 0.7874 | 0.8013 | 0.0512 |
+| XGBoost | 0.7722 | 0.8179 | 0.8130 | 0.0512 |
+| Extra Trees | 0.8106 | 0.8003 | 0.7966 | 0.0356 |
+| MLP | 0.7680 | 0.7912 | 0.7648 | 0.1128 |
+| TabM | 0.7671 | 0.7903 | 0.7523 | 0.1128 |
+
+Live recall averages emitted-flow scenario recall across sessions. Eighty fresh
+NetEm sessions cover five scenarios, two patterns, four rates and two repeats;
+all six classifiers share each trace, yielding 480 comparisons. Completely
+invisible original flows are measured separately in the capture-loss study.
+DoS versus DDoS confusion remains because inputs describe individual flows.
+
+Twelve isolated-process benchmarks measure warm single-flow latency, CPU,
+batch throughput and process peak RSS. They exclude packet-decoding, polling
+and firewall-installation costs; batch scores are not IPS line-rate throughput.
+
+Final acceptance with tuned Extra Trees installed 30 connection rules during
+three-source DDoS. Destination capture observed 1,291 packets: 686 datagrams
+were delivered and 605 were counted as input firewall drops. The benign
+acceptance installed zero rules. A separate fresh CICIDS run emitted 45 completed
+flow decisions, with no enforcement. All four authenticated sensors remained online.
+
+The 21-test regression suite, selected Ruff checks, shell syntax and JavaScript
+syntax passed. The final report and nine-slide presentation contain full method,
+calibration, failed transfer results and limits. See [the report](FlowLab_Final_Report.docx),
+[presentation](FlowLab_Project_Presentation.pptx) and [summary](STUDY_SUMMARY.json).
+Raw evidence remains in local `results/cic-transfer.json`, `live-study.json`,
+`model-performance.json`, `extended-acceptance.json` and the capture manifests.

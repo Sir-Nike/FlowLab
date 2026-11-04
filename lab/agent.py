@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """Root agent inside disposable FlowLab VMs. No arbitrary shell or target input."""
 
+import base64
+import hashlib
+import random
 import collections
 import hmac
 import json
@@ -19,7 +22,13 @@ TOKEN = Path(os.environ.get("FLOWLAB_TOKEN_FILE", "/etc/flowlab-token")).read_te
 LOCK = threading.RLock()
 PACKETS = collections.deque(maxlen=100000)
 SEQ = 0
-COUNTERS = {"http_requests": 0, "udp_datagrams": 0, "udp_payload_bytes": 0}
+COUNTERS = {
+    "http_requests": 0,
+    "udp_datagrams": 0,
+    "udp_payload_bytes": 0,
+    "auth_success": 0,
+    "auth_failure": 0,
+}
 RUNNING = threading.Event()
 STOP = threading.Event()
 LAST_CONTACT = time.monotonic()
@@ -117,7 +126,8 @@ def collect(raw):
         PACKETS.append((SEQ, packet))
 
 
-def traffic(target, scenario, duration, rate):
+def traffic(target, scenario, duration, rate, seed=42):
+    rng = random.Random(seed)
     RUNNING.set()
     try:
         end = time.monotonic() + duration
@@ -142,12 +152,19 @@ def traffic(target, scenario, duration, rate):
                 else:
                     url = f"http://{target}:8080/" + ("auth" if scenario == "BruteForce" else "")
                     # Explicitly bypass host/environment HTTP proxies in the isolated lab.
-                    urllib.request.build_opener(urllib.request.ProxyHandler({})).open(url, timeout=0.5).read()
+                    if scenario == "BruteForce":
+                        password = rng.choice(["admin", "password", "123456", "letmein", "guest"])
+                        credentials = base64.b64encode(f"student:{password}".encode()).decode()
+                        req = urllib.request.Request(url, headers={"Authorization": "Basic " + credentials})
+                    else:
+                        url += "?size=" + str(rng.choice([64, 512, 1400, 4096]))
+                        req = urllib.request.Request(url)
+                    urllib.request.build_opener(urllib.request.ProxyHandler({})).open(req, timeout=0.5).read()
                     if scenario == "BENIGN" and i % 3 == 0:
                         sock.sendto(b"benign:" + b"normal data" * 20, (target, 8081))
             except (OSError, urllib.error.URLError):
                 pass
-            time.sleep(1 / (rate if scenario != "BENIGN" else min(rate, 8)))
+            time.sleep(rng.uniform(0.5, 1.5) / (rate if scenario != "BENIGN" else min(rate, 8)))
         sock.close()
     finally:
         RUNNING.clear()
@@ -157,8 +174,29 @@ class Service(BaseHTTPRequestHandler):
     def do_GET(self):
         with LOCK:
             COUNTERS["http_requests"] += 1
-        self.send_response(401 if self.path == "/auth" else 200)
-        body = b"FlowLab lab service\n" * (2 if self.path == "/auth" else 60)
+        parsed = urllib.parse.urlparse(self.path)
+        auth = parsed.path == "/auth"
+        valid = False
+        if auth:
+            supplied = self.headers.get("Authorization", "")
+            try:
+                user, password = (
+                    base64.b64decode(supplied.removeprefix("Basic "), validate=True).decode().split(":", 1)
+                )
+                candidate = hashlib.pbkdf2_hmac("sha256", password.encode(), b"flowlab-disposable", 1000)
+                expected = hashlib.pbkdf2_hmac(
+                    "sha256", b"lab-only-correct-password", b"flowlab-disposable", 1000
+                )
+                valid = user == "student" and hmac.compare_digest(candidate, expected)
+            except (ValueError, UnicodeError):
+                pass
+            with LOCK:
+                COUNTERS["auth_success" if valid else "auth_failure"] += 1
+        self.send_response(200 if not auth or valid else 401)
+        if auth and not valid:
+            self.send_header("WWW-Authenticate", 'Basic realm="FlowLab disposable lab"')
+        size = min(8192, max(32, int(urllib.parse.parse_qs(parsed.query).get("size", ["1024"])[0])))
+        body = (b"Authenticated\n" if valid else b"Credentials rejected\n") if auth else b"x" * size
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
@@ -325,7 +363,11 @@ class Agent(BaseHTTPRequestHandler):
                     raise ValueError("Scenario already active")
                 STOP.clear()
                 RUNNING.set()
-                threading.Thread(target=traffic, args=(target, scenario, duration, rate), daemon=True).start()
+                threading.Thread(
+                    target=traffic,
+                    args=(target, scenario, duration, rate, int(data.get("seed", 42))),
+                    daemon=True,
+                ).start()
                 return self.respond(200, {"started": True, "target": target})
             if self.path == "/block":
                 src, dst, sport, dport, protocol = (
