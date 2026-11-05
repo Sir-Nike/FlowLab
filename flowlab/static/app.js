@@ -37,8 +37,8 @@ function setSource(source){
 }
 document.querySelectorAll('[data-source]').forEach(b=>b.addEventListener('click',()=>setSource(b.dataset.source)));
 function refreshModelChoices(force=false){
- const eligible=state.models.filter(m=>(m.live_compatible&&(state.source!=='live'||m.prefix))||(state.source==='live'&&m.schema==='cicflowmeter-improved-completed-v1'));
- const preferred=state.source==='live'?(state.recommended&&state.models.some(m=>m.id===state.recommended)?state.recommended:state.models.some(m=>m.id==='refined_context--extra_hier')?'refined_context--extra_hier':state.models.some(m=>m.id==='extended_prefix10--rf_tuned')?'extended_prefix10--rf_tuned':'lab_prefix10--rf'):state.source==='capture'?'lab_completed--rf':'fixture_completed--rf';const old=$('model').value;options('model',eligible.map(m=>[m.id,modelLabel(m)]),(force||!eligible.some(m=>m.id===old))?preferred:old);
+ const eligible=state.models.filter(m=>m.dataset==='refined_context'&&m.hierarchical&&m.live_compatible&&m.prefix);
+ const preferred='refined_context--tabm_hier';const old=$('model').value;options('model',eligible.map(m=>[m.id,modelLabel(m)]),(force||!eligible.some(m=>m.id===old))?preferred:old);
  if(!eligible.length)$('model').innerHTML='<option value="">No compatible trained models</option>';
  modelHelp();
 }
@@ -91,7 +91,7 @@ async function loadDecisionExplanation(d){
 async function loadModels(){
  [state.models,state.datasets]=await Promise.all([api('/models'),api('/datasets')]);
  state.recommended=(await api('/refinement')).summary?.recommended_model;
- $('model-count').textContent=`${state.models.length} trained artifacts`;
+ $('model-count').textContent=`${state.models.filter(m=>m.dataset==='refined_context'&&m.hierarchical).length} detection models`;
  const datasets=state.datasets.map(d=>[d.name,d.name+(d.synthetic?' · synthetic':' · real dataset')]);
  options('model-dataset',datasets,'cicids2017');
  options('csv-model',state.models.map(m=>[m.id,modelLabel(m)]));
@@ -114,7 +114,7 @@ function renderDatasets(){
 }
 async function loadCaptures(){state.captures=await api('/captures');const choices=state.captures.map(c=>[c.id,`${c.name} · ${c.label||'unlabelled'}`]);options('capture',choices);$('capture-list').innerHTML=state.captures.map(c=>`<div><strong>${esc(c.name)}</strong> <a href="/api/captures/${c.id}/download">Download PCAP</a><p class="label-info">${c.packets?.toLocaleString()??'Unknown'} supported packets · ${c.skipped} skipped · ${esc(c.label||'No evaluation label')}</p></div>`).join('')}
 on('upload-form','submit',async e=>{e.preventDefault();const data=new FormData();data.append('file',$('pcap-file').files[0]);const label=$('capture-label').value.trim();await api('/captures'+(label?'?label='+encodeURIComponent(label):''),{method:'POST',body:data});await loadCaptures();notify('Capture imported. Select Imported PCAP in Network lab to analyze it.')});
-function navigate(){const page=location.hash.slice(1)||'network';const actual=['network','models','data'].includes(page)?page:'network';if(page!==actual)history.replaceState(null,'',location.pathname+location.search+'#network');document.querySelectorAll('.page').forEach(p=>p.hidden=p.id!==actual);document.querySelectorAll('[data-page]').forEach(a=>a.classList.toggle('active',a.dataset.page===actual));const text={network:['Network lab','Network command center.','Send a scenario, inspect the evidence, and follow the decision.'],models:['Models & training','Evidence before confidence.','Inspect model performance, class support, and dataset provenance.'],data:['Data & captures','Start with the evidence.','Inspect training data and bring your own packet captures.']}[actual];$('page-label').textContent=text[0];$('heading').textContent=text[1];$('page-description').textContent=text[2]}
+function navigate(){const page=location.hash.slice(1)||'network';const actual=['network'].includes(page)?page:'network';if(page!==actual)history.replaceState(null,'',location.pathname+location.search+'#network');document.querySelectorAll('.page').forEach(p=>p.hidden=p.id!==actual);document.querySelectorAll('[data-page]').forEach(a=>a.classList.toggle('active',a.dataset.page===actual));const text={network:['Network lab','Network command center.','Send a scenario, inspect the evidence, and follow the decision.'],models:['Models & training','Evidence before confidence.','Inspect model performance, class support, and dataset provenance.'],data:['Data & captures','Start with the evidence.','Inspect training data and bring your own packet captures.']}[actual];$('page-label').textContent=text[0];$('heading').textContent=text[1];$('page-description').textContent=text[2]}
 window.addEventListener('hashchange',navigate);
 async function poll(){
  if(state.polling)return;state.polling=true;
