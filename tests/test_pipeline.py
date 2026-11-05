@@ -230,3 +230,19 @@ def test_demand_explanation_rejects_changed_model(workspace, monkeypatch):
     assert record['explanation_status'] == 'failed'
     assert 'no longer reproduces' in record['explanation_error']
     assert not record.get('explanation')
+
+
+def test_realistic_traffic_plan_is_bounded_and_live_only():
+    from flowlab.live import traffic_plan
+    sources = [{'ip': f'192.168.56.{i}'} for i in [11, 12, 13]]
+    request = dict(scenario='Realistic', duration=8, rate=500, seed=42)
+    plan = traffic_plan(request, sources)
+    assert plan == traffic_plan(request, sources)
+    assert plan[0]['scenario'] == 'BENIGN' and plan[0]['duration'] == 8
+    assert plan[0]['rate'] * plan[0]['duration'] > 10 * sum(p['rate'] * p['duration'] for p in plan[1:])
+    assert all(p['offset'] + p['duration'] <= 8 for p in plan)
+    assert len({p['source'] for p in plan}) == 3
+    for source, duration in [('fixture', 8), ('capture', 8), ('live', 7)]:
+        with pytest.raises(ValueError):
+            application.ScenarioRequest(model_id='saved', scenario='Realistic', source=source, duration=duration)
+    application.ScenarioRequest(model_id='saved', scenario='Realistic', source='live', duration=8)

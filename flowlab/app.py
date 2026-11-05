@@ -92,7 +92,7 @@ def submit(kind, fn, *args):
 class ScenarioRequest(BaseModel):
     source: Literal["fixture", "capture", "live"] = "fixture"
     model_id: str
-    scenario: Literal["BENIGN", "DoS", "DDoS", "PortScan", "BruteForce", "BenignBurst", "HTTPDoS"] = "BENIGN"
+    scenario: Literal["BENIGN", "DoS", "DDoS", "PortScan", "BruteForce", "BenignBurst", "HTTPDoS", "Realistic"] = "BENIGN"
     src: str = "192.168.56.11"
     dst: str = "192.168.56.12"
     loss_rate: float = Field(default=0, ge=0, le=0.1, allow_inf_nan=False)
@@ -109,6 +109,8 @@ class ScenarioRequest(BaseModel):
         ips = {p["ip"] for p in PEERS}
         if self.src not in ips or self.dst not in ips or self.src == self.dst:
             raise ValueError("Choose two different lab peers")
+        if self.scenario == "Realistic" and (self.source != "live" or self.duration < 8):
+            raise ValueError("Realistic traffic requires Live VMs and at least eight seconds")
         if self.scenario == "DDoS" and self.source_count < 2:
             raise ValueError("DDoS requires at least two source peers")
         if self.scenario in {"DDoS", "BenignBurst", "HTTPDoS"} and self.source == "fixture":

@@ -319,3 +319,17 @@ support the named class; negative values oppose it. Hierarchical models also sho
 separate benign/attack gate contributions. These are model sensitivities, not
 proof of malicious intent. If the currently saved model cannot reproduce an old
 decision, the app asks for a new analysis instead of attaching a misleading explanation.
+
+## Realistic traffic scenario
+
+In Network lab select **Live VMs → Realistic · mostly benign with occasional
+attacks**. Choose a destination and run for 8–30 seconds. The selected source sends
+benign web/UDP traffic at about eight operations per second throughout the run.
+The other two sources each send a one-second attack burst at two operations per
+second, scheduled around 30% and 70% of the duration. The seed selects port scan,
+HTTP password guessing or bounded UDP DoS for each burst. Source count and rate
+are fixed for this preset; normal scenario controls still apply to other presets.
+The live-run popup shows the schedule separately from model predictions. This is
+a controlled simulation; actual packet proportions depend on service responses,
+loss and enforcement. Captures are stored as mixed/unlabelled and must not be used
+as a homogeneous labelled training capture.

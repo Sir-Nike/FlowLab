@@ -5,6 +5,7 @@ import shutil
 import subprocess
 import ipaddress
 import time
+import random
 from concurrent.futures import ThreadPoolExecutor
 
 import httpx
@@ -77,6 +78,22 @@ def peers():
     return output
 
 
+def traffic_plan(request, sources):
+    duration = request.get("duration", 8)
+    if request["scenario"] == "Realistic":
+        if duration < 8 or len(sources) != 3:
+            raise ValueError("Realistic traffic requires three source peers and at least eight seconds")
+        rng = random.Random(request["seed"])
+        return [
+            dict(source=sources[0]["ip"], scenario="BENIGN", offset=0, duration=duration, rate=8),
+            *[dict(source=peer["ip"], scenario=rng.choice(["PortScan", "BruteForce", "DoS"]),
+                   offset=duration * fraction, duration=1, rate=2)
+              for peer, fraction in zip(sources[1:], [.3, .7])],
+        ]
+    return [dict(source=p["ip"], scenario="DoS" if request["scenario"] == "DDoS" else request["scenario"],
+                 offset=0, duration=duration, rate=request.get("rate", 100)) for p in sources]
+
+
 def run_live(request, progress=lambda _: None):
     if request["scenario"] == "DDoS" and request.get("source_count", 3) < 2:
         raise ValueError("DDoS requires at least two source peers")
@@ -84,12 +101,13 @@ def run_live(request, progress=lambda _: None):
     src = next(p for p in resolved if p["ip"] == request["src"])
     dst = next(p for p in resolved if p["ip"] == request["dst"])
     others = [p for p in resolved if p["ip"] not in {src["ip"], dst["ip"]}]
-    sources = (
+    sources = [src, *others] if request["scenario"] == "Realistic" else (
         [src, *others][: request.get("source_count", 3)]
         if request["scenario"] in {"DDoS", "BenignBurst"}
         else [src]
     )
     source_ips = {p["ip"] for p in sources}
+    plan = traffic_plan(request, sources)
     bundle = load_model(request["model_id"])
     meta = bundle["metadata"]
     from . import cic
@@ -142,21 +160,19 @@ def run_live(request, progress=lambda _: None):
             ]
             loss_configuration = loss_configurations[0]
             duration = request.get("duration", 8)
-            for source in sources:
-                call(
-                    source,
-                    "/scenario",
-                    {
-                        "target": dst["ip"],
-                        "scenario": "DoS" if request["scenario"] == "DDoS" else request["scenario"],
-                        "seed": request["seed"],
-                        "duration": duration,
-                        "rate": request.get("rate", 100),
-                    },
-                )
+            pending = list(plan)
+            store.update(run_id, traffic_plan=plan)
             cursor = 0
-            stop = time.monotonic() + duration + 2
+            started = time.monotonic()
+            stop = started + duration + 2
             while time.monotonic() < stop:
+                for entry in pending[:]:
+                    if time.monotonic() - started >= entry["offset"]:
+                        source = next(p for p in sources if p["ip"] == entry["source"])
+                        call(source, "/scenario", dict(target=dst["ip"], scenario=entry["scenario"],
+                             seed=request["seed"], duration=entry["duration"], rate=entry["rate"]))
+                        entry["started_at"] = time.time()
+                        pending.remove(entry)
                 batch = call(dst, f"/packets?after={cursor}")
                 if batch["overrun"]:
                     raise ValueError("VM capture buffer overran; reduce traffic rate")
@@ -273,13 +289,13 @@ def run_live(request, progress=lambda _: None):
                         "bytes": len(response.content),
                         "packets": len(raw_packets),
                         "skipped": skipped,
-                        "label": "BENIGN"
+                        "label": None if request["scenario"] == "Realistic" else "BENIGN"
                         if request["scenario"] == "BenignBurst"
                         else "DoS"
                         if request["scenario"] == "HTTPDoS"
                         else request["scenario"],
                         "endpoints": sorted({p.src for p in raw_packets} | {p.dst for p in raw_packets}),
-                        "label_source": "controlled live scenario; inspect before corpus use",
+                        "label_source": "mixed controlled workload; no single capture label" if request["scenario"] == "Realistic" else "controlled live scenario; inspect before corpus use",
                         "capture_point": point,
                         "live_run_id": run_id,
                     },
@@ -317,6 +333,7 @@ def run_live(request, progress=lambda _: None):
                 loss_configurations=loss_configurations,
                 loss_configuration=loss_configuration,
                 capture_ids=captured,
+                traffic_plan=plan,
                 note="Capture at destination after source egress loss; application counters measure delivery.",
             )
         except Exception as exc:
