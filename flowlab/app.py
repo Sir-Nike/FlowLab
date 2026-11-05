@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Literal
 
 import pandas as pd
+import numpy as np
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
@@ -23,6 +24,9 @@ from .packets import read_pcap
 
 pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix="flowlab")
 job_lock = threading.Lock()
+explanation_pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix="flowlab-demand")
+explanation_lock = threading.Lock()
+explanation_pending = set()
 log = logging.getLogger("flowlab")
 
 
@@ -221,6 +225,44 @@ def peer_status():
 @app.get("/api/decisions")
 def decisions():
     return store.listing("decision", 100)
+
+
+@app.post("/api/decisions/{record_id}/explanation")
+def explain_decision(record_id: str):
+    try:
+        decision = store.get(record_id, "decision")
+    except ValueError:
+        raise HTTPException(404, "Decision not found")
+    if decision.get("explanation"):
+        return {"status": "complete", "explanation": decision["explanation"]}
+    with explanation_lock:
+        if record_id in explanation_pending:
+            return JSONResponse({"status": "pending"}, status_code=202)
+        if len(explanation_pending) >= 16:
+            raise HTTPException(429, "Explanation queue is full; try again shortly")
+        explanation_pending.add(record_id)
+        store.update(record_id, explanation_status="pending", explanation_error=None)
+
+    def calculate():
+        try:
+            bundle = load_model(decision["model_id"])
+            current = predict(bundle, [decision["features"]])[0]
+            original = decision.get("probabilities")
+            if not original or set(original) != set(current["probabilities"]) or not np.allclose(
+                [original[k] for k in original],
+                [current["probabilities"][k] for k in original], rtol=1e-4, atol=1e-6,
+            ):
+                raise ValueError("The saved model no longer reproduces this decision. Run a new analysis to explain it.")
+            explanation = predict(bundle, [decision["features"]], explain=True)[0]["explanation"]
+            store.update(record_id, explanation=explanation, explanation_status="complete", explanation_error=None)
+        except Exception as exc:
+            store.update(record_id, explanation_status="failed", explanation_error=str(exc))
+        finally:
+            with explanation_lock:
+                explanation_pending.discard(record_id)
+
+    explanation_pool.submit(calculate)
+    return JSONResponse({"status": "pending"}, status_code=202)
 
 
 @app.get("/api/records/{record_id}")

@@ -308,3 +308,14 @@ The updated [report](docs/FlowLab_Final_Report.docx),
 [presentation](docs/FlowLab_Project_Presentation.pptx) and
 [refinement summary](docs/REFINEMENT_SUMMARY.json) contain the measured results.
 The original `STUDY_SUMMARY.json` preserves the earlier baseline study.
+
+## On demand decision explanations
+
+Open any decision in Network lab to calculate missing feature contributions in a
+separate background worker. Use **Show contribution bars** at the top of the
+popup to jump to the ranked measurements. Results are cached in decision history;
+classification and enforcement do not wait for this request. Positive values
+support the named class; negative values oppose it. Hierarchical models also show
+separate benign/attack gate contributions. These are model sensitivities, not
+proof of malicious intent. If the currently saved model cannot reproduce an old
+decision, the app asks for a new analysis instead of attaching a misleading explanation.

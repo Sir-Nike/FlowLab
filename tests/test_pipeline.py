@@ -176,3 +176,57 @@ def test_hierarchical_training_persistence_and_binary_explanation(workspace):
     assert abs(sum(decision["probabilities"].values()) - 1) < 1e-8
     assert decision["explanation"]["binary_gate"]["method"].endswith("independent binary gate")
     assert saved["metrics"]["test"]["selective"]["coverage"] <= 1
+
+
+def test_demand_explanation_is_queued_deduplicated_and_cached(workspace, monkeypatch):
+    import threading
+    import time
+    release, started = threading.Event(), threading.Event()
+    calls = []
+    explanation = {'method': 'test sensitivity', 'features': []}
+    decision = store.add('decision', {'model_id': 'saved', 'features': {'x': 2},
+        'probabilities': {'BENIGN': .1, 'DoS': .9}})
+    def load(_):
+        started.set()
+        assert release.wait(3)
+        return {}
+    def prediction(bundle, records, explain=False):
+        calls.append(explain)
+        return [{'probabilities': decision['probabilities'], 'explanation': explanation}]
+    monkeypatch.setattr(application, 'load_model', load)
+    monkeypatch.setattr(application, 'predict', prediction)
+    client = TestClient(application.app)
+    url = '/api/decisions/' + decision['id'] + '/explanation'
+    try:
+        assert client.post(url).status_code == 202
+        assert started.wait(1)
+        assert client.post(url).status_code == 202
+    finally:
+        release.set()
+    for _ in range(100):
+        if store.get(decision['id']).get('explanation_status') == 'complete':
+            break
+        time.sleep(.02)
+    response = client.post(url)
+    assert response.status_code == 200
+    assert response.json()['explanation'] == explanation
+    assert calls == [False, True]
+    assert client.post('/api/decisions/missing/explanation').status_code == 404
+
+
+def test_demand_explanation_rejects_changed_model(workspace, monkeypatch):
+    import time
+    decision = store.add('decision', {'model_id': 'saved', 'features': {'x': 2},
+        'probabilities': {'BENIGN': .1, 'DoS': .9}})
+    monkeypatch.setattr(application, 'load_model', lambda _: {})
+    monkeypatch.setattr(application, 'predict', lambda *a, **k: [{'probabilities': {'BENIGN': .9, 'DoS': .1}}])
+    response = TestClient(application.app).post('/api/decisions/' + decision['id'] + '/explanation')
+    assert response.status_code == 202
+    for _ in range(100):
+        record = store.get(decision['id'])
+        if record.get('explanation_status') == 'failed':
+            break
+        time.sleep(.02)
+    assert record['explanation_status'] == 'failed'
+    assert 'no longer reproduces' in record['explanation_error']
+    assert not record.get('explanation')
