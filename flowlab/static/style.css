@@ -13,3 +13,5 @@ label,legend{font-size:11px}select,input:not([type=checkbox]){font-size:12px}.fi
 
 /* Keep the switch arrows and caption readable independently of diagram scaling. */
 .network-switch{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:42px;height:42px;display:grid;place-items:center;border:1px solid #62efad;border-radius:50%;background:#143529;color:#62efad;pointer-events:none}.network-switch svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}.network-switch span{position:absolute;top:calc(100% + 6px);left:50%;transform:translateX(-50%);width:68px;text-align:center;font:9px/1.4 var(--mono);color:var(--muted);white-space:normal}
+
+.decision-time{display:block;margin-top:5px;color:var(--muted);font:10px/1.7 var(--mono);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
